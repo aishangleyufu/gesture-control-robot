@@ -1,0 +1,36 @@
+#include<iom128v.h>
+#define uchar unsigned char 
+#define uint unsigned int 
+
+//延时函数
+void s_ms(unsigned int t)
+{
+    for(;t>1;t--)
+    {
+    }
+}
+
+//主函数
+main()
+{
+uchar led=1;
+DDRA=0xff;         //端口A为输出
+PORTA=0xff;        //关闭所有LED
+DDRG=0xff;         //端口A为输出
+PORTG=0xff; 
+while(1)
+     {
+	  PORTA=~led;  //端口输出led值
+	  led=led<<1;  //向左移动一位
+	  s_ms(65535); //延时
+	  s_ms(65535);
+	  s_ms(65535);
+	  s_ms(65535);
+	  PORTG=0xff;
+	  if(led==0)   //完成8位后重新开始
+         {
+	      led=1;
+	      PORTG&=~(1<<3);
+	     }  
+	  }
+}

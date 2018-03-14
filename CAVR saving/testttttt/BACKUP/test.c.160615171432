@@ -1,0 +1,63 @@
+/*
+ * led.c
+ *
+ * Created: 2013-3-22 21:54:14
+ *  Author: yuan
+ */ 
+
+#include <iom128v.h>
+#include <macros.h> 
+#define uchar unsigned char 
+#define uint unsigned int
+
+void io_init();
+
+//Ö÷º¯Êý
+int main()
+{
+	io_init();
+	
+	DDRB=0xff;      
+	PORTB=0xff;  
+	
+	DDRE=0x00;  
+	PORTE=0xF0;
+	while(1)
+	{
+		if(PINE & 0x10)
+			PORTB |=0x10;
+		else 
+			PORTB &=0xef;
+		
+		if(PINE & 0x20)
+			PORTB |=0x20;
+		else 
+			PORTB &=0xdf;
+			
+		if(PINE & 0x40)
+			PORTB |=0x40;
+		else 
+			PORTB &=0xbf;
+			
+		if(PINE & 0x80)
+			PORTB |=0x80;
+		else 
+			PORTB &=0x7f;
+	}
+}
+
+void io_init()
+{
+	DDRA=0x00;
+	DDRB=0x00;
+	DDRC=0x00;
+	DDRD=0x00;
+	DDRE=0x00;
+	DDRF=0x00;
+	PORTA=0x00;
+	PORTB=0x00;
+	PORTC=0x00;
+	PORTD=0x00;
+	PORTE=0x00;
+	PORTF=0x00;
+}

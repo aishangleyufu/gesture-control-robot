@@ -1,0 +1,82 @@
+/*
+ * led.c
+ *
+ * Created: 2013-3-22 21:54:14
+ *  Author: yuan
+ */ 
+
+#include <iom128v.h> 
+#include <macros.h> 
+#define uchar unsigned char 
+#define uint unsigned int
+
+void delay_us(uint a);
+void delay_ms(uint a);
+void s_ms(unsigned int t);
+void io_init();
+
+//Ö÷º¯Êý
+int main()
+{
+	io_init();
+	
+	DDRB=0xff;      
+	PORTB=0xff;  
+	
+	DDRD=0xff;      
+	while(1)
+	{
+		PORTB=0x00; 
+		s_ms(10000);
+		PORTB=0xF0; 
+		s_ms(10000);
+	}
+}
+
+void delay_us(uint a)
+{
+	uint b;
+	for (;a>0;a--)
+	{
+		for (b=130;b>0;b--)
+			;
+	};
+	
+}
+
+void delay_ms(uint a)
+{
+	uint b;
+	for (;a>0;a--)
+	{
+		for (b=63000;b>0;b--)
+			;
+	}
+		
+}
+
+void s_ms(unsigned int t)
+{
+   uint b;
+	for (;t>0;t--)
+	{
+		for (b=6300;b>0;b--)
+			;
+	}
+}
+
+void io_init()
+{
+	DDRA=0x00;
+	DDRB=0x00;
+	DDRC=0x00;
+	DDRD=0x00;
+	DDRE=0x00;
+	DDRF=0x00;
+	PORTA=0x00;
+	PORTB=0x00;
+	PORTC=0x00;
+	PORTD=0x00;
+	PORTE=0x00;
+	PORTF=0x00;
+}

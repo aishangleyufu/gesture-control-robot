@@ -1,0 +1,117 @@
+/*======
+使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+在快速PWM的模式下，top=0x03ff=1023
+OCRnX在top时刻更新
+频率=8000000/8/1023=977.5HZ
+=======================================================*/
+#include <iom128v.h> 
+#include <macros.h> 
+
+
+
+void  Pwm1A_Init(void)
+
+{
+
+DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm1A_Init(void)
+
+{
+
+DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm1A_Init(void)
+
+{
+
+DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm3A_Init(void)
+{
+DDRE|=BIT(PE3);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3A1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+}
+ 
+void  Pwm3B_Init(void)
+{
+DDRE|=BIT(PE4);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3B1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+} 
+
+void  Pwm3B_Init(void)
+{
+DDRE|=BIT(PE4);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3B1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+} 
+
+int main ()
+{
+ int i,j,k;
+ DDRB|=BIT(PB7);
+
+//将OCR1A管脚配置为输出
+
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+
+//时钟8分频
+
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+
+//快速PWM模式top:ICR1
+
+ICR1=40000;
+
+//周期20ms
+
+OCR1C=4000;   //2000---3000--4000
+
+//正脉宽
+
+TCNT1=0x0000;
+
+
+
+
+//清零计数器
+while(1)
+{
+for(i=0;i<1000;i++)
+{for(j=0;j<1000;j++)
+  {for(k=0;k<8;k++)   //k<10,约三秒  
+    ; 
+  }
+   }
+    OCR1C=6000-OCR1C; 
+}
+}

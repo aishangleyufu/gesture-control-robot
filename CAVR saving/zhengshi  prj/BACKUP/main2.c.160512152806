@@ -1,0 +1,203 @@
+/*======
+使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+在快速PWM的模式下，top=0x03ff=1023
+OCRnX在top时刻更新
+频率=8000000/8/1023=977.5HZ
+=======================================================*/
+#include <iom128v.h> 
+#include <macros.h> 
+int flag=0;
+int tempflag1=0;
+int tempflag2=0;
+
+
+void PWM_init()
+{
+   DDRB|=0XE0;
+   DDRE|=0X38;
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);                   
+	ICR1=40000;
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3A1)|(1<<WGM11);
+	ICR3=40000;
+	OCR1A=3000;
+	OCR1B=3000;
+	OCR1C=3000;
+	OCR3A=3000;
+	OCR3B=3000;
+	OCR3C=3000;
+}
+
+void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+{
+    OCR1A+=ch_1a;
+	OCR1B+=ch_1b;
+	OCR1C+=ch_1c;
+	OCR3A+=ch_3a;
+	OCR3B+=ch_3b;
+	OCR3C+=ch_3c;
+}
+
+void action_base(char number)
+{ switch(number)
+{
+case 0:{action_set(0,0,0,0,0,0,100);break;} //直立
+//case 1:{action_set(0,0,-200,700,0,0,50);break;} //右脚左倾											   #####
+case 1:{action_set(0,0,-375,600,0,0,40);break;} //左脚左倾	  			-300/-400						#####
+case 2:{action_set(0,0,-300,0,600,600,50);break;} //右抬脚，同时右脚放平							 #####
+//case 4:{action_set(700,700,-350,-400,700,700,50);break;} //左弯脚 3,4可以一起完成
+//case 5:{action_set(700,700,0,0,700,700,50);break;} //转正	
+case 3:{action_set(300,600,0,0,600,900,75);break;} //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上#####
+case 4:{action_set(300,600,450,350,600,900,50);break;} //左脚右倾	 	前倾								  #####
+//case 8:{action_set(400,700,-750,300,700,1000,50);break;} //右脚右倾，度数还得减小	 
+case 5:{action_set(300,600,0,300,0,300,50);break;} //右脚立正  ，前倾
+case 6:{action_set(0,0,0,300,0,0,25);break;} //左脚回正	 	同时，左脚放平，取消前倾			   #####
+case 7:{action_set(-600,-600,0,300,0,0,25);break;} //左抬脚										   #####
+//case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //右弯脚	11,12可以一起完成 ，前脚未着地
+//case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //右转正 
+case 8:{action_set(-600,-400,0,0,-400,-600,75);break;} //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上，左脚稍弯##### 
+case 9:{action_set(-600,-400,-350,-450,-400,-600,50);break;} //右脚左倾   	前倾								#####
+//case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //左脚左倾   
+case 10:{action_set(0,0,-300,-450,-600,-600,50);break;} //左立正，前倾
+//case 10:{action_set(0,0,-300,0,0,0,75);break;} //右回正，取消前倾可以回到3，右抬脚，或者回到0		  #####
+
+case 11:{action_set(0,0,-300,0,-600,-800,50);break;} //右后抬脚，同时右脚放平							 #####
+case 12:{action_set(-750,-400,0,0,-400,-750,75);break;} //后倾，1号舵机+500，6号舵机-500，重心转移到后脚，右脚稍弯#####
+case 13:{action_set(-750,-400,400,300,-400,-750,50);break;} //脚右倾	 	
+case 14:{action_set(-750,-600,0,250,0,0,50);break;} //右脚回正	 	同时，左脚放平，取消前倾			   #####								  #####
+case 15:{action_set(0,0,0,250,0,0,40);break;} //右脚回正	 	同时，左脚放平，取消前倾			   #####
+case 16:{action_set(600,600,0,250,0,0,40);break;} //左后抬脚										   #####
+case 17:{action_set(600,600,0,0,600,600,50);break;} //后倾，1号舵机+500，6号舵机-500，把重心转移到前脚上##### 
+case 18:{action_set(600,600,-350,-450,600,600,50);break;} //脚左倾   									#####
+case 19:{action_set(0,0,-300,-450,600,600,50);break;} //脚左倾   									#####
+case 20:{action_set(0,0,-300,0,0,0,50);break;} //左回正，取消前倾可以回到3，右抬脚，或者回到0		  #####
+
+}
+}
+/*
+void  Pwm1A_Init(void)
+
+{
+DDRB|=0XE0;
+DDRE|=0X38;
+//DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm1B_Init(void)
+
+{
+
+//DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm1C_Init(void)
+
+{
+
+//DDRB|=BIT(PB7);
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=Period;
+OCR1C=0x0200;
+TCNT1=0x0000;
+} 
+
+void  Pwm3A_Init(void)
+{
+//DDRE|=BIT(PE3);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3A1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+}
+ 
+void  Pwm3B_Init(void)
+{
+//DDRE|=BIT(PE4);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3B1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+} 
+
+void  Pwm3C_Init(void)
+{
+//DDRE|=BIT(PE4);
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+TCCR3A|=(1<<COM3B1)|(1<<WGM11);
+ICR3=Period;
+OCR3A=0x0400;
+TCNT3=0x0000;
+} 
+   */
+   
+void io_init()
+{
+	DDRA=0x00;
+	DDRB=0x00;
+	DDRC=0x00;
+	DDRD=0x00;
+	DDRE=0x00;
+	DDRF=0x00;
+	PORTA=0x00;
+	PORTB=0x00;
+	PORTC=0x00;
+	PORTD=0x00;
+	PORTE=0x00;
+	PORTF=0x00;
+}
+
+void key_init()
+{
+io_init();
+	
+	DDRB=0xff;      
+	PORTB=0xff;  
+	
+	DDRE=0x00;  
+	PORTE=0xF0;
+
+}
+  
+
+
+
+int main(){
+   PWM_init();
+   key_init();
+   while(1){
+   		if(PINE & 0x10)
+			{tempflag1=1;
+			PORTB |=0x10;}
+		    else
+			  PORTB &=0xef;
+		if(PINE & 0x20)
+			{tempflag2=1;
+			PORTB |=0x20;}
+			else
+			  PORTB &=0xdf;
+		if(tempflag1==1&&(PINE & 0x10 ==0))
+		    {flag++;
+			 tempflag1=0;
+			}
+		if(tempflag2==1&&(PINE & 0x20 ==0))
+		    {flag--;
+			 tempflag2=0;
+			 }
+			action_base(flag); 
+   }
+
+}

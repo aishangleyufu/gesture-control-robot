@@ -1,0 +1,360 @@
+Interrupt Vectors
+    00000 940C 0075 JMP	__text_start|__start
+
+Program Code (text area)
+__text_start|__start:
+    00075 EFCF      LDI	R28,0xFF
+    00076 E2D1      LDI	R29,0x21
+    00077 BFCD      OUT	0x3D,R28
+    00078 BFDE      OUT	0x3E,R29
+    00079 51CE      SUBI	R28,0x1E
+    0007A 40D0      SBCI	R29,0
+    0007B EA0A      LDI	R16,0xAA
+    0007C 8308      ST	Y,R16
+    0007D 2400      CLR	R0
+    0007E E0E6      LDI	R30,6
+    0007F E0F2      LDI	R31,2
+    00080 E012      LDI	R17,2
+    00081 30E6      CPI	R30,6
+    00082 07F1      CPC	R31,R17
+    00083 F011      BEQ	0x0086
+    00084 9201      ST	Z+,R0
+    00085 CFFB      RJMP	0x0081
+    00086 8300      ST	Z,R16
+    00087 EEE4      LDI	R30,0xE4
+    00088 E0F0      LDI	R31,0
+    00089 E0A0      LDI	R26,0
+    0008A E0B2      LDI	R27,2
+    0008B E010      LDI	R17,0
+    0008C E000      LDI	R16,0
+    0008D BF0B      OUT	0x3B,R16
+    0008E 3EEA      CPI	R30,0xEA
+    0008F 07F1      CPC	R31,R17
+    00090 F021      BEQ	0x0095
+    00091 95C8      LPM
+    00092 9631      ADIW	R30,1
+    00093 920D      ST	X+,R0
+    00094 CFF9      RJMP	0x008E
+    00095 940E 00EB CALL	_main
+_exit:
+    00097 CFFF      RJMP	_exit
+_delay_1ms:
+  i                    --> Y,+0
+    00098 9724      SBIW	R28,4
+FILE: D:\Documents\Atmel\CAVRSA~1\testttttt\test.c
+(0001) /*======
+(0002) 使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+(0003) 在快速PWM的模式下，top=0x03ff=1023
+(0004) OCRnX在top时刻更新
+(0005) 频率=8000000/8/1023=977.5HZ
+(0006) =======================================================*/
+(0007) #include <iom128v.h> 
+(0008) #include <macros.h> 
+(0009) int action_series_step=0;
+(0010) int action_series_number=0;
+(0011) int action_series_flag=0;
+(0012) 
+(0013) void delay_1ms(void)//1ms延时函数 
+(0014) { 
+(0015)   long int i; 
+(0016)   for (i=0;i<150*16;i++) ;//因为是8M晶振，所以这里乘8，这个延时不够精准 
+    00099 E080      LDI	R24,0
+    0009A 8388      ST	Y,R24
+    0009B 8389      STD	Y+1,R24
+    0009C 838A      STD	Y+2,R24
+    0009D 838B      STD	Y+3,R24
+    0009E E081      LDI	R24,1
+    0009F E090      LDI	R25,0
+    000A0 E0A0      LDI	R26,0
+    000A1 E0B0      LDI	R27,0
+    000A2 8028      LD	R2,Y
+    000A3 8039      LDD	R3,Y+1
+    000A4 804A      LDD	R4,Y+2
+    000A5 805B      LDD	R5,Y+3
+    000A6 0E28      ADD	R2,R24
+    000A7 1E39      ADC	R3,R25
+    000A8 1E4A      ADC	R4,R26
+    000A9 1E5B      ADC	R5,R27
+    000AA 8228      ST	Y,R2
+    000AB 8239      STD	Y+1,R3
+    000AC 824A      STD	Y+2,R4
+    000AD 825B      STD	Y+3,R5
+    000AE E680      LDI	R24,0x60
+    000AF E099      LDI	R25,0x9
+    000B0 E0A0      LDI	R26,0
+    000B1 E0B0      LDI	R27,0
+    000B2 8028      LD	R2,Y
+    000B3 8039      LDD	R3,Y+1
+    000B4 804A      LDD	R4,Y+2
+    000B5 805B      LDD	R5,Y+3
+    000B6 1628      CP	R2,R24
+    000B7 0639      CPC	R3,R25
+    000B8 064A      CPC	R4,R26
+    000B9 065B      CPC	R5,R27
+    000BA F31C      BLT	0x009E
+    000BB 9624      ADIW	R28,4
+    000BC 9508      RET
+_delay_nms:
+  i                    --> Y,+0
+  n                    --> Y,+8
+    000BD 940E 0181 CALL	push_arg4
+    000BF 940E 0186 CALL	push_xgsetF000
+    000C1 9724      SBIW	R28,4
+(0017)   
+(0018) }    
+(0019) void delay_nms(long int n)//延时n毫秒 
+(0020) { 
+(0021)   long int i; 
+(0022)   for (i=0;i<n;i++)//执行n次1毫秒延时 
+    000C2 E080      LDI	R24,0
+    000C3 8388      ST	Y,R24
+    000C4 8389      STD	Y+1,R24
+    000C5 838A      STD	Y+2,R24
+    000C6 838B      STD	Y+3,R24
+    000C7 C011      RJMP	0x00D9
+(0023)   {delay_1ms();}  
+    000C8 DFCF      RCALL	_delay_1ms
+    000C9 E041      LDI	R20,1
+    000CA E050      LDI	R21,0
+    000CB E060      LDI	R22,0
+    000CC E070      LDI	R23,0
+    000CD 8028      LD	R2,Y
+    000CE 8039      LDD	R3,Y+1
+    000CF 804A      LDD	R4,Y+2
+    000D0 805B      LDD	R5,Y+3
+    000D1 0E24      ADD	R2,R20
+    000D2 1E35      ADC	R3,R21
+    000D3 1E46      ADC	R4,R22
+    000D4 1E57      ADC	R5,R23
+    000D5 8228      ST	Y,R2
+    000D6 8239      STD	Y+1,R3
+    000D7 824A      STD	Y+2,R4
+    000D8 825B      STD	Y+3,R5
+    000D9 8428      LDD	R2,Y+8
+    000DA 8439      LDD	R3,Y+9
+    000DB 844A      LDD	R4,Y+10
+    000DC 845B      LDD	R5,Y+11
+    000DD 8068      LD	R6,Y
+    000DE 8079      LDD	R7,Y+1
+    000DF 808A      LDD	R8,Y+2
+    000E0 809B      LDD	R9,Y+3
+    000E1 1462      CP	R6,R2
+    000E2 0473      CPC	R7,R3
+    000E3 0484      CPC	R8,R4
+    000E4 0495      CPC	R9,R5
+    000E5 F314      BLT	0x00C8
+    000E6 9624      ADIW	R28,4
+    000E7 940E 018B CALL	pop_xgsetF000
+    000E9 9624      ADIW	R28,4
+    000EA 9508      RET
+(0024) } 
+(0025) 
+(0026) 
+(0027) 
+(0028) void main (void)
+(0029) {
+(0030)  int i,j,k;
+(0031)  int number=0;
+_main:
+  number               --> R16
+  i                    --> R16
+  j                    --> R18
+  k                    --> R20
+    000EB 2700      CLR	R16
+    000EC 2711      CLR	R17
+(0032)  DDRB|=BIT(PB7);
+    000ED 9ABF      SBI	0x17,7
+(0033)  DDRB|=BIT(PB6);
+    000EE 9ABE      SBI	0x17,6
+(0034)  DDRB|=BIT(PB5);
+    000EF 9ABD      SBI	0x17,5
+(0035)  DDRE|=BIT(PE3);
+    000F0 9A13      SBI	0x02,3
+(0036)  DDRE|=BIT(PE4);
+    000F1 9A14      SBI	0x02,4
+(0037)  DDRE|=BIT(PE5);
+    000F2 9A15      SBI	0x02,5
+(0038) //将OCR1A管脚配置为输出
+(0039) 
+(0040) TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+    000F3 B58E      IN	R24,0x2E
+    000F4 618A      ORI	R24,0x1A
+    000F5 BD8E      OUT	0x2E,R24
+(0041) 
+(0042) //时钟8分频
+(0043) TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //选通ABC  
+    000F6 B58F      IN	R24,0x2F
+    000F7 6A8A      ORI	R24,0xAA
+    000F8 BD8F      OUT	0x2F,R24
+(0044) //TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0045) 
+(0046) //快速PWM模式top:ICR1
+(0047) 
+(0048) ICR1=20000; //40000;
+    000F9 E280      LDI	R24,0x20
+    000FA E49E      LDI	R25,0x4E
+    000FB BD97      OUT	0x27,R25
+    000FC BD86      OUT	0x26,R24
+(0049) 
+(0050) TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+    000FD 9180 008A LDS	R24,0x8A
+    000FF 618A      ORI	R24,0x1A
+    00100 9380 008A STS	0x8A,R24
+(0051) TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //选通ABC
+    00102 9180 008B LDS	R24,0x8B
+    00104 6A8A      ORI	R24,0xAA
+    00105 9380 008B STS	0x8B,R24
+(0052) 	ICR3=20000;
+    00107 E280      LDI	R24,0x20
+    00108 9390 0081 STS	0x81,R25
+    0010A 9380 0080 STS	0x80,R24
+(0053) 
+(0054) 
+(0055) //周期20ms
+(0056) 
+(0057) OCR1C=1000;   //2000---3000--4000
+    0010C EE88      LDI	R24,0xE8
+    0010D E093      LDI	R25,3
+    0010E 9390 0079 STS	0x79,R25
+    00110 9380 0078 STS	0x78,R24
+(0058) OCR1B=1000;
+    00112 BD99      OUT	0x29,R25
+    00113 BD88      OUT	0x28,R24
+(0059) OCR1A=1000;
+    00114 BD9B      OUT	0x2B,R25
+    00115 BD8A      OUT	0x2A,R24
+(0060) OCR3C=1000;
+    00116 9390 0083 STS	0x83,R25
+    00118 9380 0082 STS	0x82,R24
+(0061) OCR3B=1000;
+    0011A 9390 0085 STS	0x85,R25
+    0011C 9380 0084 STS	0x84,R24
+(0062) OCR3A=1000;
+    0011E 9390 0087 STS	0x87,R25
+    00120 9380 0086 STS	0x86,R24
+(0063) 
+(0064) //正脉宽
+(0065) 
+(0066) TCNT1=0x0000;
+    00122 2422      CLR	R2
+    00123 2433      CLR	R3
+    00124 BC3D      OUT	0x2D,R3
+    00125 BC2C      OUT	0x2C,R2
+    00126 C058      RJMP	0x017F
+(0067) 
+(0068) /*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+(0069) TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0070) ICR1=40000;   */
+(0071) 
+(0072) 
+(0073) //清零计数器
+(0074) while(1)
+(0075) {
+(0076) for(i=0;i<1000;i++){
+    00127 2700      CLR	R16
+    00128 2711      CLR	R17
+(0077)     for(j=0;j<1000;j++){
+    00129 2722      CLR	R18
+    0012A 2733      CLR	R19
+(0078)        for(k=0;k<8;k++){   //k<10,约三秒  
+    0012B 2744      CLR	R20
+    0012C 2755      CLR	R21
+    0012D 5F4F      SUBI	R20,0xFF
+    0012E 4F5F      SBCI	R21,0xFF
+    0012F 3048      CPI	R20,0x8
+    00130 E0E0      LDI	R30,0
+    00131 075E      CPC	R21,R30
+    00132 F3D4      BLT	0x012D
+    00133 5F2F      SUBI	R18,0xFF
+    00134 4F3F      SBCI	R19,0xFF
+    00135 3E28      CPI	R18,0xE8
+    00136 E0E3      LDI	R30,3
+    00137 073E      CPC	R19,R30
+    00138 F394      BLT	0x012B
+    00139 5F0F      SUBI	R16,0xFF
+    0013A 4F1F      SBCI	R17,0xFF
+    0013B 3E08      CPI	R16,0xE8
+    0013C E0E3      LDI	R30,3
+    0013D 071E      CPC	R17,R30
+    0013E F354      BLT	0x0129
+(0079)          ; 
+(0080) 		 }
+(0081)     }
+(0082) }
+(0083) 
+(0084)     OCR1C=3000-OCR1C; 
+    0013F 9020 0078 LDS	R2,0x78
+    00141 9030 0079 LDS	R3,0x79
+    00143 EB88      LDI	R24,0xB8
+    00144 E09B      LDI	R25,0xB
+    00145 1982      SUB	R24,R2
+    00146 0993      SBC	R25,R3
+    00147 9390 0079 STS	0x79,R25
+    00149 9380 0078 STS	0x78,R24
+(0085) 	OCR1B=3000-OCR1B; 
+    0014B B428      IN	R2,0x28
+    0014C B439      IN	R3,0x29
+    0014D EB88      LDI	R24,0xB8
+    0014E E09B      LDI	R25,0xB
+    0014F 1982      SUB	R24,R2
+    00150 0993      SBC	R25,R3
+    00151 BD99      OUT	0x29,R25
+    00152 BD88      OUT	0x28,R24
+(0086) 	OCR1A=3000-OCR1A; 
+    00153 B42A      IN	R2,0x2A
+    00154 B43B      IN	R3,0x2B
+    00155 EB88      LDI	R24,0xB8
+    00156 E09B      LDI	R25,0xB
+    00157 1982      SUB	R24,R2
+    00158 0993      SBC	R25,R3
+    00159 BD9B      OUT	0x2B,R25
+    0015A BD8A      OUT	0x2A,R24
+(0087)     OCR3C=3000-OCR3C; 
+    0015B 9020 0082 LDS	R2,0x82
+    0015D 9030 0083 LDS	R3,0x83
+    0015F EB88      LDI	R24,0xB8
+    00160 E09B      LDI	R25,0xB
+    00161 1982      SUB	R24,R2
+    00162 0993      SBC	R25,R3
+    00163 9390 0083 STS	0x83,R25
+    00165 9380 0082 STS	0x82,R24
+(0088) 	OCR3B=3000-OCR3B; 
+    00167 9020 0084 LDS	R2,0x84
+    00169 9030 0085 LDS	R3,0x85
+    0016B EB88      LDI	R24,0xB8
+    0016C E09B      LDI	R25,0xB
+    0016D 1982      SUB	R24,R2
+    0016E 0993      SBC	R25,R3
+    0016F 9390 0085 STS	0x85,R25
+    00171 9380 0084 STS	0x84,R24
+(0089) 	OCR3A=3000-OCR3A; 
+FILE: <library>
+    00173 9020 0086 LDS	R2,0x86
+    00175 9030 0087 LDS	R3,0x87
+    00177 EB88      LDI	R24,0xB8
+    00178 E09B      LDI	R25,0xB
+    00179 1982      SUB	R24,R2
+    0017A 0993      SBC	R25,R3
+    0017B 9390 0087 STS	0x87,R25
+    0017D 9380 0086 STS	0x86,R24
+    0017F CFA7      RJMP	0x0127
+    00180 9508      RET
+push_arg4:
+    00181 933A      ST	-Y,R19
+    00182 932A      ST	-Y,R18
+push_arg2:
+    00183 931A      ST	-Y,R17
+    00184 930A      ST	-Y,R16
+    00185 9508      RET
+push_xgsetF000:
+    00186 937A      ST	-Y,R23
+    00187 936A      ST	-Y,R22
+    00188 935A      ST	-Y,R21
+    00189 934A      ST	-Y,R20
+    0018A 9508      RET
+pop_xgsetF000:
+    0018B 9149      LD	R20,Y+
+    0018C 9159      LD	R21,Y+
+    0018D 9169      LD	R22,Y+
+    0018E 9179      LD	R23,Y+
+    0018F 9508      RET

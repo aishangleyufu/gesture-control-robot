@@ -1,0 +1,437 @@
+                        .module test.c
+                        .area text(rom, con, rel)
+ 0000                   .dbfile ..\..\CAVRSA~1\testttttt\test.c
+                        .area data(ram, con, rel)
+ 0000                   .dbfile ..\..\CAVRSA~1\testttttt\test.c
+ 0000           _action_series_step::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 0000              .word 0
+                        .area data(ram, con, rel)
+ 0002                   .dbfile ..\..\CAVRSA~1\testttttt\test.c
+ 0002                   .dbfile D:\Documents\Atmel\CAVRSA~1\testttttt\test.c
+ 0002                   .dbsym e action_series_step _action_series_step I
+ 0002           _action_series_number::
+ 0002                   .blkb 2
+                        .area idata
+ 0002 0000              .word 0
+                        .area data(ram, con, rel)
+ 0004                   .dbfile D:\Documents\Atmel\CAVRSA~1\testttttt\test.c
+ 0004                   .dbsym e action_series_number _action_series_number I
+ 0004           _action_series_flag::
+ 0004                   .blkb 2
+                        .area idata
+ 0004 0000              .word 0
+                        .area data(ram, con, rel)
+ 0006                   .dbfile D:\Documents\Atmel\CAVRSA~1\testttttt\test.c
+ 0006                   .dbsym e action_series_flag _action_series_flag I
+                        .area text(rom, con, rel)
+ 0000                   .dbfile D:\Documents\Atmel\CAVRSA~1\testttttt\test.c
+ 0000                   .dbfunc e delay_1ms _delay_1ms fV
+ 0000           ;              i -> y+0
+                        .even
+ 0000           _delay_1ms::
+ 0000 2497              sbiw R28,4
+ 0002                   .dbline -1
+ 0002                   .dbline 14
+ 0002           ; /*======
+ 0002           ; 使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+ 0002           ; 在快速PWM的模式下，top=0x03ff=1023
+ 0002           ; OCRnX在top时刻更新
+ 0002           ; 频率=8000000/8/1023=977.5HZ
+ 0002           ; =======================================================*/
+ 0002           ; #include <iom128v.h> 
+ 0002           ; #include <macros.h> 
+ 0002           ; int action_series_step=0;
+ 0002           ; int action_series_number=0;
+ 0002           ; int action_series_flag=0;
+ 0002           ; 
+ 0002           ; void delay_1ms(void)//1ms延时函数 
+ 0002           ; { 
+ 0002                   .dbline 16
+ 0002           ;   long int i; 
+ 0002           ;   for (i=0;i<150*16;i++) ;//因为是8M晶振，所以这里乘8，这个延时不够精准 
+ 0002 80E0              ldi R24,0
+ 0004 8883              std y+0,R24
+ 0006 8983              std y+1,R24
+ 0008 8A83              std y+2,R24
+ 000A 8B83              std y+3,R24
+ 000C           L2:
+ 000C                   .dbline 16
+ 000C           L3:
+ 000C                   .dbline 16
+ 000C 81E0              ldi R24,1
+ 000E 90E0              ldi R25,0
+ 0010 A0E0              ldi R26,0
+ 0012 B0E0              ldi R27,0
+ 0014 2880              ldd R2,y+0
+ 0016 3980              ldd R3,y+1
+ 0018 4A80              ldd R4,y+2
+ 001A 5B80              ldd R5,y+3
+ 001C 280E              add R2,R24
+ 001E 391E              adc R3,R25
+ 0020 4A1E              adc R4,R26
+ 0022 5B1E              adc R5,R27
+ 0024 2882              std y+0,R2
+ 0026 3982              std y+1,R3
+ 0028 4A82              std y+2,R4
+ 002A 5B82              std y+3,R5
+ 002C                   .dbline 16
+ 002C 80E6              ldi R24,96
+ 002E 99E0              ldi R25,9
+ 0030 A0E0              ldi R26,0
+ 0032 B0E0              ldi R27,0
+ 0034 2880              ldd R2,y+0
+ 0036 3980              ldd R3,y+1
+ 0038 4A80              ldd R4,y+2
+ 003A 5B80              ldd R5,y+3
+ 003C 2816              cp R2,R24
+ 003E 3906              cpc R3,R25
+ 0040 4A06              cpc R4,R26
+ 0042 5B06              cpc R5,R27
+ 0044 1CF3              brlt L2
+ 0046           X0:
+ 0046                   .dbline -2
+ 0046           L1:
+ 0046                   .dbline 0 ; func end
+ 0046 2496              adiw R28,4
+ 0048 0895              ret
+ 004A                   .dbsym l i 0 L
+ 004A                   .dbend
+ 004A                   .dbfunc e delay_nms _delay_nms fV
+ 004A           ;              i -> y+0
+ 004A           ;              n -> y+8
+                        .even
+ 004A           _delay_nms::
+ 004A 0E940000          xcall push_arg4
+ 004E 0E940000          xcall push_xgsetF000
+ 0052 2497              sbiw R28,4
+ 0054                   .dbline -1
+ 0054                   .dbline 20
+ 0054           ;   
+ 0054           ; }    
+ 0054           ; void delay_nms(long int n)//延时n毫秒 
+ 0054           ; { 
+ 0054                   .dbline 22
+ 0054           ;   long int i; 
+ 0054           ;   for (i=0;i<n;i++)//执行n次1毫秒延时 
+ 0054 80E0              ldi R24,0
+ 0056 8883              std y+0,R24
+ 0058 8983              std y+1,R24
+ 005A 8A83              std y+2,R24
+ 005C 8B83              std y+3,R24
+ 005E 11C0              xjmp L10
+ 0060           L7:
+ 0060                   .dbline 23
+ 0060           ;   {delay_1ms();}  
+ 0060                   .dbline 23
+ 0060 CFDF              xcall _delay_1ms
+ 0062                   .dbline 23
+ 0062           L8:
+ 0062                   .dbline 22
+ 0062 41E0              ldi R20,1
+ 0064 50E0              ldi R21,0
+ 0066 60E0              ldi R22,0
+ 0068 70E0              ldi R23,0
+ 006A 2880              ldd R2,y+0
+ 006C 3980              ldd R3,y+1
+ 006E 4A80              ldd R4,y+2
+ 0070 5B80              ldd R5,y+3
+ 0072 240E              add R2,R20
+ 0074 351E              adc R3,R21
+ 0076 461E              adc R4,R22
+ 0078 571E              adc R5,R23
+ 007A 2882              std y+0,R2
+ 007C 3982              std y+1,R3
+ 007E 4A82              std y+2,R4
+ 0080 5B82              std y+3,R5
+ 0082           L10:
+ 0082                   .dbline 22
+ 0082 2884              ldd R2,y+8
+ 0084 3984              ldd R3,y+9
+ 0086 4A84              ldd R4,y+10
+ 0088 5B84              ldd R5,y+11
+ 008A 6880              ldd R6,y+0
+ 008C 7980              ldd R7,y+1
+ 008E 8A80              ldd R8,y+2
+ 0090 9B80              ldd R9,y+3
+ 0092 6214              cp R6,R2
+ 0094 7304              cpc R7,R3
+ 0096 8404              cpc R8,R4
+ 0098 9504              cpc R9,R5
+ 009A 14F3              brlt L7
+ 009C           X1:
+ 009C                   .dbline -2
+ 009C           L6:
+ 009C                   .dbline 0 ; func end
+ 009C 2496              adiw R28,4
+ 009E 0E940000          xcall pop_xgsetF000
+ 00A2 2496              adiw R28,4
+ 00A4 0895              ret
+ 00A6                   .dbsym l i 0 L
+ 00A6                   .dbsym l n 8 L
+ 00A6                   .dbend
+ 00A6                   .dbfunc e main _main fV
+ 00A6           ;         number -> R16,R17
+ 00A6           ;              i -> R16,R17
+ 00A6           ;              j -> R18,R19
+ 00A6           ;              k -> R20,R21
+                        .even
+ 00A6           _main::
+ 00A6                   .dbline -1
+ 00A6                   .dbline 29
+ 00A6           ; } 
+ 00A6           ; 
+ 00A6           ; 
+ 00A6           ; 
+ 00A6           ; void main (void)
+ 00A6           ; {
+ 00A6                   .dbline 31
+ 00A6           ;  int i,j,k;
+ 00A6           ;  int number=0;
+ 00A6 0027              clr R16
+ 00A8 1127              clr R17
+ 00AA                   .dbline 32
+ 00AA           ;  DDRB|=BIT(PB7);
+ 00AA BF9A              sbi 0x17,7
+ 00AC                   .dbline 33
+ 00AC           ;  DDRB|=BIT(PB6);
+ 00AC BE9A              sbi 0x17,6
+ 00AE                   .dbline 34
+ 00AE           ;  DDRB|=BIT(PB5);
+ 00AE BD9A              sbi 0x17,5
+ 00B0                   .dbline 35
+ 00B0           ;  DDRE|=BIT(PE3);
+ 00B0 139A              sbi 0x2,3
+ 00B2                   .dbline 36
+ 00B2           ;  DDRE|=BIT(PE4);
+ 00B2 149A              sbi 0x2,4
+ 00B4                   .dbline 37
+ 00B4           ;  DDRE|=BIT(PE5);
+ 00B4 159A              sbi 0x2,5
+ 00B6                   .dbline 40
+ 00B6           ; //将OCR1A管脚配置为输出
+ 00B6           ; 
+ 00B6           ; TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+ 00B6 8EB5              in R24,0x2e
+ 00B8 8A61              ori R24,26
+ 00BA 8EBD              out 0x2e,R24
+ 00BC                   .dbline 43
+ 00BC           ; 
+ 00BC           ; //时钟8分频
+ 00BC           ; TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //选通ABC  
+ 00BC 8FB5              in R24,0x2f
+ 00BE 8A6A              ori R24,170
+ 00C0 8FBD              out 0x2f,R24
+ 00C2                   .dbline 48
+ 00C2           ; //TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ 00C2           ; 
+ 00C2           ; //快速PWM模式top:ICR1
+ 00C2           ; 
+ 00C2           ; ICR1=20000; //40000;
+ 00C2 80E2              ldi R24,20000
+ 00C4 9EE4              ldi R25,78
+ 00C6 97BD              out 0x27,R25
+ 00C8 86BD              out 0x26,R24
+ 00CA                   .dbline 50
+ 00CA           ; 
+ 00CA           ; TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+ 00CA 80918A00          lds R24,138
+ 00CE 8A61              ori R24,26
+ 00D0 80938A00          sts 138,R24
+ 00D4                   .dbline 51
+ 00D4           ; TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //选通ABC
+ 00D4 80918B00          lds R24,139
+ 00D8 8A6A              ori R24,170
+ 00DA 80938B00          sts 139,R24
+ 00DE                   .dbline 52
+ 00DE           ;       ICR3=20000;
+ 00DE 80E2              ldi R24,32
+ 00E0 90938100          sts 128+1,R25
+ 00E4 80938000          sts 128,R24
+ 00E8                   .dbline 57
+ 00E8           ; 
+ 00E8           ; 
+ 00E8           ; //周期20ms
+ 00E8           ; 
+ 00E8           ; OCR1C=1000;   //2000---3000--4000
+ 00E8 88EE              ldi R24,1000
+ 00EA 93E0              ldi R25,3
+ 00EC 90937900          sts 120+1,R25
+ 00F0 80937800          sts 120,R24
+ 00F4                   .dbline 58
+ 00F4           ; OCR1B=1000;
+ 00F4 99BD              out 0x29,R25
+ 00F6 88BD              out 0x28,R24
+ 00F8                   .dbline 59
+ 00F8           ; OCR1A=1000;
+ 00F8 9BBD              out 0x2b,R25
+ 00FA 8ABD              out 0x2a,R24
+ 00FC                   .dbline 60
+ 00FC           ; OCR3C=1000;
+ 00FC 90938300          sts 130+1,R25
+ 0100 80938200          sts 130,R24
+ 0104                   .dbline 61
+ 0104           ; OCR3B=1000;
+ 0104 90938500          sts 132+1,R25
+ 0108 80938400          sts 132,R24
+ 010C                   .dbline 62
+ 010C           ; OCR3A=1000;
+ 010C 90938700          sts 134+1,R25
+ 0110 80938600          sts 134,R24
+ 0114                   .dbline 66
+ 0114           ; 
+ 0114           ; //正脉宽
+ 0114           ; 
+ 0114           ; TCNT1=0x0000;
+ 0114 2224              clr R2
+ 0116 3324              clr R3
+ 0118 3DBC              out 0x2d,R3
+ 011A 2CBC              out 0x2c,R2
+ 011C 58C0              xjmp L13
+ 011E           L12:
+ 011E                   .dbline 75
+ 011E           ; 
+ 011E           ; /*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+ 011E           ; TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ 011E           ; ICR1=40000;   */
+ 011E           ; 
+ 011E           ; 
+ 011E           ; //清零计数器
+ 011E           ; while(1)
+ 011E           ; {
+ 011E                   .dbline 76
+ 011E           ; for(i=0;i<1000;i++){
+ 011E 0027              clr R16
+ 0120 1127              clr R17
+ 0122           L15:
+ 0122                   .dbline 76
+ 0122                   .dbline 77
+ 0122           ;     for(j=0;j<1000;j++){
+ 0122 2227              clr R18
+ 0124 3327              clr R19
+ 0126           L19:
+ 0126                   .dbline 77
+ 0126                   .dbline 78
+ 0126           ;        for(k=0;k<8;k++){   //k<10,约三秒  
+ 0126 4427              clr R20
+ 0128 5527              clr R21
+ 012A           L23:
+ 012A                   .dbline 78
+ 012A                   .dbline 79
+ 012A           ;          ; 
+ 012A                   .dbline 80
+ 012A           ;                }
+ 012A           L24:
+ 012A                   .dbline 78
+ 012A 4F5F              subi R20,255  ; offset = 1
+ 012C 5F4F              sbci R21,255
+ 012E                   .dbline 78
+ 012E 4830              cpi R20,8
+ 0130 E0E0              ldi R30,0
+ 0132 5E07              cpc R21,R30
+ 0134 D4F3              brlt L23
+ 0136           X2:
+ 0136                   .dbline 81
+ 0136           ;     }
+ 0136           L20:
+ 0136                   .dbline 77
+ 0136 2F5F              subi R18,255  ; offset = 1
+ 0138 3F4F              sbci R19,255
+ 013A                   .dbline 77
+ 013A 283E              cpi R18,232
+ 013C E3E0              ldi R30,3
+ 013E 3E07              cpc R19,R30
+ 0140 94F3              brlt L19
+ 0142           X3:
+ 0142                   .dbline 82
+ 0142           ; }
+ 0142           L16:
+ 0142                   .dbline 76
+ 0142 0F5F              subi R16,255  ; offset = 1
+ 0144 1F4F              sbci R17,255
+ 0146                   .dbline 76
+ 0146 083E              cpi R16,232
+ 0148 E3E0              ldi R30,3
+ 014A 1E07              cpc R17,R30
+ 014C 54F3              brlt L15
+ 014E           X4:
+ 014E                   .dbline 84
+ 014E           ; 
+ 014E           ;     OCR1C=3000-OCR1C; 
+ 014E 20907800          lds R2,120
+ 0152 30907900          lds R3,120+1
+ 0156 88EB              ldi R24,3000
+ 0158 9BE0              ldi R25,11
+ 015A 8219              sub R24,R2
+ 015C 9309              sbc R25,R3
+ 015E 90937900          sts 120+1,R25
+ 0162 80937800          sts 120,R24
+ 0166                   .dbline 85
+ 0166           ;       OCR1B=3000-OCR1B; 
+ 0166 28B4              in R2,0x28
+ 0168 39B4              in R3,0x29
+ 016A 88EB              ldi R24,3000
+ 016C 9BE0              ldi R25,11
+ 016E 8219              sub R24,R2
+ 0170 9309              sbc R25,R3
+ 0172 99BD              out 0x29,R25
+ 0174 88BD              out 0x28,R24
+ 0176                   .dbline 86
+ 0176           ;       OCR1A=3000-OCR1A; 
+ 0176 2AB4              in R2,0x2a
+ 0178 3BB4              in R3,0x2b
+ 017A 88EB              ldi R24,3000
+ 017C 9BE0              ldi R25,11
+ 017E 8219              sub R24,R2
+ 0180 9309              sbc R25,R3
+ 0182 9BBD              out 0x2b,R25
+ 0184 8ABD              out 0x2a,R24
+ 0186                   .dbline 87
+ 0186           ;     OCR3C=3000-OCR3C; 
+ 0186 20908200          lds R2,130
+ 018A 30908300          lds R3,130+1
+ 018E 88EB              ldi R24,3000
+ 0190 9BE0              ldi R25,11
+ 0192 8219              sub R24,R2
+ 0194 9309              sbc R25,R3
+ 0196 90938300          sts 130+1,R25
+ 019A 80938200          sts 130,R24
+ 019E                   .dbline 88
+ 019E           ;       OCR3B=3000-OCR3B; 
+ 019E 20908400          lds R2,132
+ 01A2 30908500          lds R3,132+1
+ 01A6 88EB              ldi R24,3000
+ 01A8 9BE0              ldi R25,11
+ 01AA 8219              sub R24,R2
+ 01AC 9309              sbc R25,R3
+ 01AE 90938500          sts 132+1,R25
+ 01B2 80938400          sts 132,R24
+ 01B6                   .dbline 89
+ 01B6           ;       OCR3A=3000-OCR3A; 
+ 01B6 20908600          lds R2,134
+ 01BA 30908700          lds R3,134+1
+ 01BE 88EB              ldi R24,3000
+ 01C0 9BE0              ldi R25,11
+ 01C2 8219              sub R24,R2
+ 01C4 9309              sbc R25,R3
+ 01C6 90938700          sts 134+1,R25
+ 01CA 80938600          sts 134,R24
+ 01CE                   .dbline 92
+ 01CE           ; 
+ 01CE           ;       
+ 01CE           ; }
+ 01CE           L13:
+ 01CE                   .dbline 74
+ 01CE A7CF              xjmp L12
+ 01D0           X5:
+ 01D0                   .dbline -2
+ 01D0           L11:
+ 01D0                   .dbline 0 ; func end
+ 01D0 0895              ret
+ 01D2                   .dbsym r number 16 I
+ 01D2                   .dbsym r i 16 I
+ 01D2                   .dbsym r j 18 I
+ 01D2                   .dbsym r k 20 I
+ 01D2                   .dbend
+ 01D2           ; }

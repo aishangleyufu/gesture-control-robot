@@ -1,0 +1,427 @@
+/*======
+Ê¹ÓÃ¶¨Ê±Æ÷1£¬OCR1A,OCR1B,OCR1CÈı¸ö¹Ü½ÅÍ¬Ê±Êä³öPWM²¨ĞÎ
+ÔÚ¿ìËÙPWMµÄÄ£Ê½ÏÂ£¬top=0x03ff=1023
+OCRnXÔÚtopÊ±¿Ì¸üĞÂ
+ÆµÂÊ=8000000/8/1023=977.5HZ
+=======================================================*/
+#include <iom128v.h> 
+#include <macros.h> 
+int action_series_step=0;
+int action_series_number=0;
+int action_series_flag=0;
+
+int temp=0;
+int temp_last=0;
+char sendflag1=0;
+char sendflag=0;
+#define uchar unsigned char //¶¨ÒåÎŞ·ûºÅ×Ö·ûÎª uchar
+#define uint unsigned int //¶¨ÒåÎŞ·ûºÅÕûĞÍ
+#define Crystal 8000000 //¾§Õñ8MHZ
+#define Baud 115200 //²¨ÌØÂÊ?
+#define fosc 8000000 
+#define baud 115200  //²¨ÌØÂÊ
+uchar data_temp;
+char data1;
+uchar usart0_data_counter=0;//´®¿Ú½ÓÊÕÖĞ¶Ï¼ÆÊı
+uchar usart0_data_receive[3]={0x0f,0x0f,0x0f};//½ÓÊÕ´®¿ÚÊı¾İ
+
+
+void uart1_init(void) //USART1³õÊ¼»¯
+{
+ DDRD|=(1<<2)|(1<<3);   //  IO
+ UCSR1B = 0x00;   //¹Ø±ÕUSART1
+ UCSR1A = 0x02;   //²»ÊÊÊ¹ÓÃ±¶ËÙ·¢ËÍ
+ UCSR1C = (1<<UCSZ11)|(1<<UCSZ10);//Êı¾İÎ»Îª°ËÎ»
+ UBRR1L=(fosc/8/(baud+1))%256;//Òì²½Õı³£Ä£Ê½ÏÂ£¬UBRRµÄ¼ÆËã¹«Ê½
+ UBRR1H=(fosc/8/(baud+1))/256;
+ UCSR1B =(1<<RXEN1)|(1<<TXEN1); //½ÓÊÕÊ¹ÄÜ£¬´«ËÍÊ¹ÄÜ
+}
+/****************************************************************************
+º¯Êı¹¦ÄÜ:uart1·¢ËÍµ¥×Ö½ÚÊı¾İ
+Èë¿Ú²ÎÊı:c
+³ö¿Ú²ÎÊı:
+****************************************************************************/
+void putchar1(unsigned char c)//´®¿Ú1·¢ËÍ×Ö·û
+ {  
+     while (!(UCSR1A&(1<<UDRE1)));//±íÃ÷·¢ËÍÆ÷Ò»×¼±¸¾ÍĞ÷
+  UDR1=c;    
+ } 
+ 
+/****************************************************************************
+º¯Êı¹¦ÄÜ:uart1½ÓÊÕµ¥×Ö½ÚÊı¾İ
+Èë¿Ú²ÎÊı:
+³ö¿Ú²ÎÊı:
+****************************************************************************/
+unsigned char getchar1(void) //´®¿Ú1½Ó»ØÊÕÊı¾İ
+   {
+  while(!(UCSR1A& (1<<RXC1)));
+     return UDR1;   //½«½ÓÊÕµ½µÄ×Ö·û·µ»Ø
+ } 
+ 
+/****************************************************************************
+º¯Êı¹¦ÄÜ:uart1·¢ËÍ×Ö·û´®Êı¾İ
+Èë¿Ú²ÎÊı:*s
+³ö¿Ú²ÎÊı:
+****************************************************************************/    
+void puts1(char *s)
+ {
+ while (*s)
+  {
+  putchar1(*s);
+  s++;
+  } 
+        putchar1(0x0a);//»Ø³µ»»ĞĞ
+     putchar1(0x0d);
+ } 
+ 
+
+#pragma interrupt_handler uart1_rx_isr:31
+ void uart1_rx_isr(void)
+{ 
+ UCSR1B=0x00;     
+ temp=2;
+UCSR1B=0xD8 ;                        //ÔÊĞí·¢ËÍºÍ½ÓÊÕ,½ÓÊÕºÍ·¢ËÍ½áÊøÖĞ¶ÏÊ¹ÄÜ
+	            
+	
+}
+
+
+void delay_1ms(void)//1msÑÓÊ±º¯Êı 
+{ 
+  long int i; 
+  for (i=0;i<150*16;i++) ;//ÒòÎªÊÇ8M¾§Õñ£¬ËùÒÔÕâÀï³Ë8£¬Õâ¸öÑÓÊ±²»¹»¾«×¼ 
+  
+}    
+void delay_nms(long int n)//ÑÓÊ±nºÁÃë 
+{ 
+  long int i; 
+  for (i=0;i<n;i++)//Ö´ĞĞn´Î1ºÁÃëÑÓÊ± 
+  {delay_1ms();}  
+} 
+
+void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+{
+    OCR1A=ch_1a/2+1720;   //1
+	OCR1B=ch_1b/2+1660;   //2
+	OCR1C=ch_1c/2+1680;   //3
+	OCR3A=ch_3a/2+1850;   //4
+	OCR3B=ch_3b/2+1650;   //5
+	OCR3C=ch_3c/2+1650;   //6
+	/*
+OCR1C=1680;   //2000---3000--4000
+OCR1B=1780;
+OCR1A=1640;
+OCR3C=1620;
+OCR3B=1600;
+OCR3A=1800;
+*/
+}
+
+void action_base(int number)
+{ 
+switch(number)
+{
+case 0:
+action_set(0,0,0,0,0,0,100);
+break; //Ö±Á¢
+//case 1:{action_set(0,0,-200,700,0,0,50);break;} //ÓÒ½Å×óÇã											   #####
+case 1:
+action_set(0,0,-400,400,0,0,40);
+break; //×ó½Å×óÇã	  			-300/-400						#####
+case 2:
+action_set(0,0,-400,0,500,500,100);
+break; //ÓÒÌ§½Å£¬Í¬Ê±ÓÒ½Å·ÅÆ½							 #####
+//case 4:{action_set(700,700,-350,-400,700,700,50);break;} //×óÍä½Å 3,4¿ÉÒÔÒ»ÆğÍê³É
+//case 5:{action_set(700,700,0,0,700,700,50);break;} //×ªÕı	
+case 3:
+action_set(50,0,-150,50,400,400,75);
+break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØĞÄ×ªÒÆµ½Ç°½ÅÉÏ#####
+case 4:
+action_set(100,100,-50,100,350,350,50);
+break; //×ó½ÅÓÒÇã	 	Ç°Çã								  #####
+//case 8:{action_set(400,700,-750,300,700,1000,50);break;} //ÓÒ½ÅÓÒÇã£¬¶ÈÊı»¹µÃ¼õĞ¡	 
+case 5:
+action_set(200,400,0,150,0,200,50);
+break; //ÓÒ½ÅÁ¢Õı  £¬Ç°Çã
+case 6:
+action_set(0,0,-50,250,0,0,25);
+break; //×ó½Å»ØÕı	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####
+case 7:
+action_set(-600,-600,0,250,0,0,25);
+break; //×óÌ§½Å										   #####
+//case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //ÓÒÍä½Å	11,12¿ÉÒÔÒ»ÆğÍê³É £¬Ç°½ÅÎ´×ÅµØ
+//case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //ÓÒ×ªÕı 
+case 8:
+action_set(-500,-300,0,0,-300,-500,75);
+break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØĞÄ×ªÒÆµ½Ç°½ÅÉÏ£¬×ó½ÅÉÔÍä##### 
+case 9:
+action_set(-500,-300,-350,-350,-300,-500,50);
+break; //ÓÒ½Å×óÇã   	Ç°Çã								#####
+//case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //×ó½Å×óÇã   
+case 10:
+action_set(0,0,-300,-250,-300,-600,50);
+break; //×óÁ¢Õı£¬Ç°Çã
+//case 10:{action_set(0,0,-300,0,0,0,75);break;} //ÓÒ»ØÕı£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0		  #####
+
+case 11:
+action_set(0,0,-200,0,-300,-600,50);
+break; //ÓÒºóÌ§½Å£¬Í¬Ê±Ò½Å·ÅÆ½							 #####
+case 12:
+action_set(-650,-300,0,0,-300,-650,75);
+break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬ÖØĞÄ×ªÒÆµ½ºó½Å£¬ÓÒ½ÅÉÔÍä#####
+case 13:
+action_set(-550,-300,200,150,-300,-550,50);
+break; //½ÅÓÒÇã	 	
+case 14:action_set(-450,-300,0,120,0,0,50);
+break; //ÓÒ½Å»ØÕı	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####								  #####
+case 15:
+action_set(0,0,0,120,0,0,40);
+break; //ÓÒ½Å»ØÕı	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####
+case 16:
+action_set(400,400,0,50,0,0,40);
+break; //×óºóÌ§½Å										   #####
+case 17:
+action_set(600,600,0,0,300,300,50);
+break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬°ÑÖØĞÄ×ªÒÆµ½Ç°½ÅÉÏ##### 
+case 18:
+action_set(600,600,-100,-150,400,400,50);
+break; //½Å×óÇã   									#####
+case 19:
+action_set(0,0,-200,-150,300,600,50);
+break; //½Å×óÇã   									#####
+case 20:
+action_set(0,0,-200,0,0,0,50);
+break; //×ó»ØÕı£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0		  #####
+
+}
+}
+
+
+void action_series_do()
+{switch(action_series_number)
+{	  
+	case 1:
+	{switch(action_series_step)
+		{case 1 : {action_base(20);break;} 
+    	 case 2 : {action_base(10);break;}
+		 case 3 : {action_base(9);break;}
+		 case 4 : {action_base(8);break;}
+		 case 5 : {action_base(7);break;}
+		 case 6 : {action_base(6);break;}
+		 case 7 : {action_base(5);break;}
+		 case 8 : {action_base(4);break;}
+		 case 9 : {action_base(3);break;}
+		 case 10 : {action_base(2);break;}
+		 case 11 : {action_base(1);break;}
+		};break;} 
+	 case 2:
+	{switch(action_series_step)
+		{case 1 : {action_base(20);break;} 
+    	 case 2 : {action_base(10);break;}
+		 case 3 : {action_base(9);break;}
+		 case 4 : {action_base(8);break;}
+		 case 5 : {action_base(7);break;}
+		 case 6 : {action_base(6);break;}
+		 case 7 : {action_base(5);break;}
+		 case 8 : {action_base(4);break;}
+		 case 9 : {action_base(3);break;}
+		 case 10 : {action_base(2);break;}
+		};break;}
+
+		case 3:
+	{switch(action_series_step)
+		{case 1 : {action_base(20);break;}
+		 case 2 : {action_base(19);break;}
+		 case 3 : {action_base(18);break;}
+		 case 4 : {action_base(17);break;}
+		 case 5 : {action_base(16);break;}
+		 case 6 : {action_base(15);break;}
+		 case 7 : {action_base(14);break;}
+		 case 8 : {action_base(13);break;}
+		 case 9 : {action_base(12);break;}
+		 case 10 : {action_base(11);break;}
+		 case 11 : {action_base(1);break;}
+		};break;}
+		case 4:
+	{switch(action_series_step)
+		{case 1 : {action_base(20);break;}
+		 case 2 : {action_base(19);break;}
+		 case 3 : {action_base(18);break;}
+		 case 4 : {action_base(17);break;}
+		 case 5 : {action_base(16);break;}
+		 case 6 : {action_base(15);break;}
+		 case 7 : {action_base(14);break;}
+		 case 8 : {action_base(13);break;}
+		 case 9 : {action_base(12);break;}
+		 case 10 : {action_base(11);break;}
+		};break;}
+		case 5:
+	{switch(action_series_step)
+		{case 1 : {action_base(0);break;}
+		 case 2 : {action_base(6);break;}
+		 case 3 : {action_base(5);break;}
+		 case 4 : {action_base(4);break;}
+		 case 5 : {action_base(0);break;}
+		};break;}
+		case 6:
+	{switch(action_series_step)
+		{case 1 : {action_base(0);break;}
+		 case 2 : {action_base(10);break;}
+		 case 3 : {action_base(9);break;}
+		 case 4 : {action_base(8);break;}
+		 case 5 : {action_base(0);break;}
+		};break;}
+		case 7:
+	{switch(action_series_step)
+		{case 1 : {action_base(0);break;}
+		 case 2 : {action_base(16);break;}
+		 case 3 : {action_base(15);break;}
+		 case 4 : {action_base(14);break;}
+		 case 5 : {action_base(0);break;}
+		};break;}
+		case 8:
+	{switch(action_series_step)
+		{case 1 : {action_base(0);break;}
+		 case 2 : {action_base(20);break;}
+		 case 3 : {action_base(19);break;}
+		 case 4 : {action_base(18);break;}
+		 case 5 : {action_base(0);break;}
+		};break;}
+		case 9:
+	{switch(action_series_step)
+		{case 1 : {action_base(9);break;}
+		 case 2 : {action_base(8);break;}
+		 case 3 : {action_base(5);break;}
+		 case 4 : {action_base(4);break;}
+		 case 5 : {action_base(3);break;}
+		 case 6 : {action_base(1);break;}
+		};break;} 
+		 case 10:
+	{switch(action_series_step)
+		{case 1 : {action_base(9);break;}
+		 case 2 : {action_base(8);break;}
+		 case 3 : {action_base(5);break;}
+		 case 4 : {action_base(4);break;}
+		};break;} 
+
+			 }
+if(--action_series_step==0)action_series_flag=0,action_series_number=0;//Èç¹û¶¯×÷Íê³É£¬Ôò¶¯×÷ÏµÁĞ±êÖ¾Î»ÖÃ0
+
+}
+
+/********¶¯×÷ÏµÁĞÅäÖÃ************/
+void action_series_set(int number)
+{
+switch(number)
+{case 1 : {action_series_number=1;action_series_step=11;break;}		 //Æô¶¯²¢×ßÒ»²½
+case 2 : {action_series_number=2;action_series_step=10;break;}		 //¼ÌĞø×ß
+case 3 : {action_series_number=3;action_series_step=11;break;}		 //Æô¶¯²¢ºóÍËÒ»²½
+case 4 : {action_series_number=4;action_series_step=10;break;}		 //¼ÌĞøºóÍË
+case 5 : {action_series_number=5;action_series_step=6;break;}		 //¼ÌĞøºóÍË
+case 6 : {action_series_number=6;action_series_step=6;break;}		 //¼ÌĞøºóÍË
+case 7 : {action_series_number=7;action_series_step=6;break;}		 //¼ÌĞøºóÍË
+case 8 : {action_series_number=8;action_series_step=6;break;}		 //¼ÌĞøºóÍË
+case 9 : {action_series_number=9;action_series_step=6;break;}		 //¼ÌĞøºóÍË
+case 10 : {action_series_number=10;action_series_step=4;break;}		 //¼ÌĞøºóÍË
+}
+action_series_flag=1;
+}
+
+void pwm_init(void)
+{
+DDRB|=BIT(PB7);
+ DDRB|=BIT(PB6);
+ DDRB|=BIT(PB5);
+ DDRE|=BIT(PE3);
+ DDRE|=BIT(PE4);
+ DDRE|=BIT(PE5);
+//½«OCR1A¹Ü½ÅÅäÖÃÎªÊä³ö
+
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+
+//Ê±ÖÓ8·ÖÆµ
+TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //Ñ¡Í¨ABC  
+//TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+
+//¿ìËÙPWMÄ£Ê½top:ICR1
+
+ICR1=20000;
+
+TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+//(1<<WGM32)|(1<<WGM33)|(1<<CS31);
+TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //Ñ¡Í¨ABC
+	ICR3=20000;
+
+
+//ÖÜÆÚ20ms
+
+OCR1C=1680;   //2000---3000--4000
+OCR1B=1880;
+OCR1A=1640;
+OCR3C=1620;
+OCR3B=1600;
+OCR3A=1800;
+
+//ÕıÂö¿í
+
+
+/*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=40000;   */
+
+}
+
+void main (void)
+{
+ int i,j,k;
+int number=0;
+char rev=0;
+   pwm_init();
+
+
+// usart0_init;//UART0³õÊ¼»¯
+  
+
+uart1_init();
+//ÇåÁã¼ÆÊıÆ÷
+
+while(1){
+
+
+
+   number=number+1;
+   if(number>10){
+   number=0;
+   }
+   
+//usart0_char_send(1);
+ //usart0_str_send("UART0 works well!"); 
+    putchar1(temp);
+		  temp=getchar1();
+		  if(temp>127){
+		  temp=temp-128;
+		  }
+		 if (temp>20){
+		 temp=temp_last;
+		 }
+		 if(temp<21&&temp>=0){
+       action_base(temp);
+	   }
+// action_series_set(number);
+// action_series_do();
+
+//usart0_char_send(0);
+ temp_last=temp;
+
+
+/*
+    OCR1C=3000-OCR1C; 
+	OCR1B=3000-OCR1B; 
+	OCR1A=3000-OCR1A; 
+    OCR3C=3000-OCR3C; 
+	OCR3B=3000-OCR3B; 
+	OCR3A=3000-OCR3A; 
+	*/
+	
+}
+}

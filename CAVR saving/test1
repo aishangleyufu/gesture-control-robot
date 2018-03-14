@@ -1,0 +1,111 @@
+/*****************************************************
+ATMEGA128 UART通用程序
+ ICCAVR版本
+              zhangxiaohui   2010.01.02
+*****************************************************/
+
+#ifndef __ATMEGA128_UART_H
+#define __ATMEGA128_UART_H
+
+#define fosc 12000000 //晶振4MHZ
+#define baud 9600	 //波特率
+#define com0	
+
+extern uchar UARTIN_temp;
+void uart0_init(void)
+{
+ UCSR0B = 0x00; //disable while setting baud rate
+ //UCSR0B = 0xc0; //接收结束中断,发送结束中断使能
+ UCSR0A = 0x00;
+ UCSR0C = 0x00;
+ UCSR0C =(1<<UCSZ01)|(1<<UCSZ00);//8bit+1bit stop
+ UBRR0L=(fosc/16/(baud+1))%256;
+ UBRR0H=(fosc/16/(baud+1))/256;
+ //UCSR0B =(1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0);//RXCEN＋TXCEN＋中断允许
+ UCSR0B =(1<<RXEN0)|(1<<TXEN0);
+}
+void uart1_init(void)
+{
+ UCSR1B = 0x00; //disable while setting baud rate
+ UCSR1A = 0x00;
+ UCSR0C = 0x00;
+ UCSR1C = (1<<UCSZ11)|(1<<UCSZ10);//8bit+1bit stop
+ UBRR1L=(fosc/16/(baud+1))%256;
+ UBRR1H=(fosc/16/(baud+1))/256;
+ UCSR1B =(1<<RXEN1)|(1<<TXEN1);//RXCEN TXCEN
+}
+void putchar0(unsigned char c)
+	{	 
+     while (!(UCSR0A&(1<<UDRE0)));
+	 UDR0=c;    
+	}
+void putchar1(unsigned char c)
+	{	 
+     while (!(UCSR1A&(1<<UDRE1)));
+	 UDR1=c;    
+	}	
+unsigned char getchar0(void)
+  	{
+	 while(!(UCSR0A& (1<<RXC0)));
+     return UDR0;
+	}	
+unsigned char getchar1(void)
+  	{
+	 while(!(UCSR1A& (1<<RXC1)));
+     return UDR1;
+	}			
+void puts0(char *s)//发送字符串
+	{
+	while (*s)//碰到0结束
+		{
+		putchar0(*s);
+		s++;
+		}	
+    putchar0(0x0D);
+	putchar0(0x0A);
+	}
+void puts1(char *s)
+	{
+	while (*s)
+		{
+		putchar1(*s);
+		s++;
+		}	
+    putchar1(0x0D);
+	putchar1(0x0A);
+	}	
+void UART_init()
+{
+ uchar i;
+ #ifdef com0 
+ 	uart0_init();
+ 	puts0("HELLO!");
+	//for(i=0;i<255;i++)da[i]=i;
+       for(i=0;i<55;i++)
+		{
+		//putchar0(da[i]);
+		}	
+    putchar0(0x0D);
+	putchar0(0x0A);
+ #else
+ 	uart1_init();
+ 	puts1("HELLO!"); 
+ #endif
+
+}
+void printchar(unsigned char ch)
+{
+	if(ch>=0&&ch<=9) ch=ch+'0';
+	else if(ch>=10&&ch<=15) ch=ch+'A'-10;
+	putchar(ch);
+}
+void printhex(unsigned char hex)//以十六进制格式输出1个字节
+{
+	unsigned char c;
+	c=hex;
+	c=c>>4;
+	printchar(c);
+	c=hex;
+	c=c&0x0F;
+	printchar(c);
+}

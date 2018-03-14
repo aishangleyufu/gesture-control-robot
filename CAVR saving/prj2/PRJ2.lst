@@ -1,0 +1,1945 @@
+Interrupt Vectors
+    00000 940C 0048 JMP	__start|__text_start
+
+Program Code (text area)
+__start|__text_start:
+    00048 EFCF      LDI	R28,0xFF
+    00049 E0DF      LDI	R29,0xF
+    0004A BFCD      OUT	0x3D,R28
+    0004B BFDE      OUT	0x3E,R29
+    0004C 56C4      SUBI	R28,0x64
+    0004D 40D0      SBCI	R29,0
+    0004E EA0A      LDI	R16,0xAA
+    0004F 8308      ST	Y,R16
+    00050 2400      CLR	R0
+    00051 E6E6      LDI	R30,0x66
+    00052 E0F0      LDI	R31,0
+    00053 E010      LDI	R17,0
+    00054 36E6      CPI	R30,0x66
+    00055 07F1      CPC	R31,R17
+    00056 F011      BEQ	0x0059
+    00057 9201      ST	Z+,R0
+    00058 CFFB      RJMP	0x0054
+    00059 8300      ST	Z,R16
+    0005A E8EA      LDI	R30,0x8A
+    0005B E0F0      LDI	R31,0
+    0005C E6A0      LDI	R26,0x60
+    0005D E0B0      LDI	R27,0
+    0005E E010      LDI	R17,0
+    0005F E000      LDI	R16,0
+    00060 BF0B      OUT	0x3B,R16
+    00061 39E0      CPI	R30,0x90
+    00062 07F1      CPC	R31,R17
+    00063 F021      BEQ	0x0068
+    00064 95C8      LPM
+    00065 9631      ADIW	R30,1
+    00066 920D      ST	X+,R0
+    00067 CFF9      RJMP	0x0061
+    00068 940E 066B CALL	_main
+_exit:
+    0006A CFFF      RJMP	_exit
+_delay_1ms:
+  i                    --> Y,+0
+    0006B 9724      SBIW	R28,4
+FILE: D:\Documents\Atmel\CAVRSA~1\prj2\main.c
+(0001) /*======
+(0002) 使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+(0003) 在快速PWM的模式下，top=0x03ff=1023
+(0004) OCRnX在top时刻更新
+(0005) 频率=8000000/8/1023=977.5HZ
+(0006) =======================================================*/
+(0007) #include <iom128v.h> 
+(0008) #include <macros.h> 
+(0009) int action_series_step=0;
+(0010) int action_series_number=0;
+(0011) int action_series_flag=0;
+(0012) 
+(0013) void delay_1ms(void)//1ms延时函数 
+(0014) { 
+(0015)   long int i; 
+(0016)   for (i=0;i<150*16;i++) ;//因为是8M晶振，所以这里乘8，这个延时不够精准 
+    0006C E080      LDI	R24,0
+    0006D 8388      ST	Y,R24
+    0006E 8389      STD	Y+1,R24
+    0006F 838A      STD	Y+2,R24
+    00070 838B      STD	Y+3,R24
+    00071 E081      LDI	R24,1
+    00072 E090      LDI	R25,0
+    00073 E0A0      LDI	R26,0
+    00074 E0B0      LDI	R27,0
+    00075 8028      LD	R2,Y
+    00076 8039      LDD	R3,Y+1
+    00077 804A      LDD	R4,Y+2
+    00078 805B      LDD	R5,Y+3
+    00079 0E28      ADD	R2,R24
+    0007A 1E39      ADC	R3,R25
+    0007B 1E4A      ADC	R4,R26
+    0007C 1E5B      ADC	R5,R27
+    0007D 8228      ST	Y,R2
+    0007E 8239      STD	Y+1,R3
+    0007F 824A      STD	Y+2,R4
+    00080 825B      STD	Y+3,R5
+    00081 E680      LDI	R24,0x60
+    00082 E099      LDI	R25,0x9
+    00083 E0A0      LDI	R26,0
+    00084 E0B0      LDI	R27,0
+    00085 8028      LD	R2,Y
+    00086 8039      LDD	R3,Y+1
+    00087 804A      LDD	R4,Y+2
+    00088 805B      LDD	R5,Y+3
+    00089 1628      CP	R2,R24
+    0008A 0639      CPC	R3,R25
+    0008B 064A      CPC	R4,R26
+    0008C 065B      CPC	R5,R27
+    0008D F31C      BLT	0x0071
+    0008E 9624      ADIW	R28,4
+    0008F 9508      RET
+_delay_nms:
+  i                    --> Y,+0
+  n                    --> Y,+8
+    00090 940E 06CE CALL	push_arg4
+    00092 940E 06D3 CALL	push_xgsetF000
+    00094 9724      SBIW	R28,4
+(0017)   
+(0018) }    
+(0019) void delay_nms(long int n)//延时n毫秒 
+(0020) { 
+(0021)   long int i; 
+(0022)   for (i=0;i<n;i++)//执行n次1毫秒延时 
+    00095 E080      LDI	R24,0
+    00096 8388      ST	Y,R24
+    00097 8389      STD	Y+1,R24
+    00098 838A      STD	Y+2,R24
+    00099 838B      STD	Y+3,R24
+    0009A C011      RJMP	0x00AC
+(0023)   {delay_1ms();}  
+    0009B DFCF      RCALL	_delay_1ms
+    0009C E041      LDI	R20,1
+    0009D E050      LDI	R21,0
+    0009E E060      LDI	R22,0
+    0009F E070      LDI	R23,0
+    000A0 8028      LD	R2,Y
+    000A1 8039      LDD	R3,Y+1
+    000A2 804A      LDD	R4,Y+2
+    000A3 805B      LDD	R5,Y+3
+    000A4 0E24      ADD	R2,R20
+    000A5 1E35      ADC	R3,R21
+    000A6 1E46      ADC	R4,R22
+    000A7 1E57      ADC	R5,R23
+    000A8 8228      ST	Y,R2
+    000A9 8239      STD	Y+1,R3
+    000AA 824A      STD	Y+2,R4
+    000AB 825B      STD	Y+3,R5
+    000AC 8428      LDD	R2,Y+8
+    000AD 8439      LDD	R3,Y+9
+    000AE 844A      LDD	R4,Y+10
+    000AF 845B      LDD	R5,Y+11
+    000B0 8068      LD	R6,Y
+    000B1 8079      LDD	R7,Y+1
+    000B2 808A      LDD	R8,Y+2
+    000B3 809B      LDD	R9,Y+3
+    000B4 1462      CP	R6,R2
+    000B5 0473      CPC	R7,R3
+    000B6 0484      CPC	R8,R4
+    000B7 0495      CPC	R9,R5
+    000B8 F314      BLT	0x009B
+    000B9 9624      ADIW	R28,4
+    000BA 940E 06D8 CALL	pop_xgsetF000
+    000BC 9624      ADIW	R28,4
+    000BD 9508      RET
+_action_set:
+  action_do_last       --> Y,+16
+  ch_3c                --> R20
+  ch_3b                --> R22
+  ch_3a                --> R10
+  ch_1c                --> R12
+  ch_1b                --> R18
+  ch_1a                --> R16
+    000BE 940E 06DD CALL	push_xgsetF03C
+    000C0 84C8      LDD	R12,Y+8
+    000C1 84D9      LDD	R13,Y+9
+    000C2 84AA      LDD	R10,Y+10
+    000C3 84BB      LDD	R11,Y+11
+    000C4 856C      LDD	R22,Y+12
+    000C5 857D      LDD	R23,Y+13
+    000C6 854E      LDD	R20,Y+14
+    000C7 855F      LDD	R21,Y+15
+(0024) } 
+(0025) 
+(0026) void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+(0027) {
+(0028)     OCR1A=ch_1a+3000;
+    000C8 01C8      MOVW	R24,R16
+    000C9 5488      SUBI	R24,0x48
+    000CA 4F94      SBCI	R25,0xF4
+    000CB BD9B      OUT	0x2B,R25
+    000CC BD8A      OUT	0x2A,R24
+(0029) 	OCR1B=ch_1b+3000;
+    000CD 01C9      MOVW	R24,R18
+    000CE 5488      SUBI	R24,0x48
+    000CF 4F94      SBCI	R25,0xF4
+    000D0 BD99      OUT	0x29,R25
+    000D1 BD88      OUT	0x28,R24
+(0030) 	OCR1C=ch_1c+3000;
+    000D2 01C6      MOVW	R24,R12
+    000D3 5488      SUBI	R24,0x48
+    000D4 4F94      SBCI	R25,0xF4
+    000D5 9390 0079 STS	action_series_flag+21,R25
+    000D7 9380 0078 STS	action_series_flag+20,R24
+(0031) 	OCR3A=ch_3a+3000;
+    000D9 01C5      MOVW	R24,R10
+    000DA 5488      SUBI	R24,0x48
+    000DB 4F94      SBCI	R25,0xF4
+    000DC 9390 0087 STS	action_series_flag+35,R25
+    000DE 9380 0086 STS	action_series_flag+34,R24
+(0032) 	OCR3B=ch_3b+3000;
+    000E0 01CB      MOVW	R24,R22
+    000E1 5488      SUBI	R24,0x48
+    000E2 4F94      SBCI	R25,0xF4
+    000E3 9390 0085 STS	action_series_flag+33,R25
+    000E5 9380 0084 STS	action_series_flag+32,R24
+(0033) 	OCR3C=ch_3c+3000;
+    000E7 01CA      MOVW	R24,R20
+    000E8 5488      SUBI	R24,0x48
+    000E9 4F94      SBCI	R25,0xF4
+    000EA 9390 0083 STS	action_series_flag+31,R25
+    000EC 9380 0082 STS	action_series_flag+30,R24
+    000EE 940C 06E6 JMP	pop_xgsetF03C
+_action_base:
+  number               --> R20
+    000F0 934A      ST	-Y,R20
+    000F1 935A      ST	-Y,R21
+    000F2 01A8      MOVW	R20,R16
+    000F3 972A      SBIW	R28,0xA
+(0034) }
+(0035) 
+(0036) void action_base(int number)
+(0037) { 
+(0038) switch(number)
+    000F4 3040      CPI	R20,0
+    000F5 E0E0      LDI	R30,0
+    000F6 075E      CPC	R21,R30
+    000F7 F40C      BGE	0x00F9
+    000F8 C1F2      RJMP	0x02EB
+    000F9 E184      LDI	R24,0x14
+    000FA E090      LDI	R25,0
+    000FB 1784      CP	R24,R20
+    000FC 0795      CPC	R25,R21
+    000FD F40C      BGE	0x00FF
+    000FE C1EC      RJMP	0x02EB
+    000FF E680      LDI	R24,0x60
+    00100 E090      LDI	R25,0
+    00101 01FA      MOVW	R30,R20
+    00102 0FEE      LSL	R30
+    00103 1FFF      ROL	R31
+    00104 0FE8      ADD	R30,R24
+    00105 1FF9      ADC	R31,R25
+    00106 9027      ELPM	R2,Z+
+    00107 9036      ELPM	R3,Z
+    00108 01F1      MOVW	R30,R2
+    00109 9409      IJMP
+(0039) {
+(0040) case 0:
+(0041) action_set(0,0,0,0,0,0,100);
+    0010A E684      LDI	R24,0x64
+    0010B E090      LDI	R25,0
+    0010C 8799      STD	Y+9,R25
+    0010D 8788      STD	Y+8,R24
+    0010E 2422      CLR	R2
+    0010F 2433      CLR	R3
+    00110 823F      STD	Y+7,R3
+    00111 822E      STD	Y+6,R2
+    00112 823D      STD	Y+5,R3
+    00113 822C      STD	Y+4,R2
+    00114 823B      STD	Y+3,R3
+    00115 822A      STD	Y+2,R2
+    00116 8239      STD	Y+1,R3
+    00117 8228      ST	Y,R2
+    00118 2722      CLR	R18
+    00119 2733      CLR	R19
+    0011A 2700      CLR	R16
+    0011B 2711      CLR	R17
+    0011C DFA1      RCALL	_action_set
+(0042) break; //直立
+    0011D C1CD      RJMP	0x02EB
+(0043) //case 1:{action_set(0,0,-200,700,0,0,50);break;} //右脚左倾											   #####
+(0044) case 1:
+(0045) action_set(0,0,-750,1200,0,0,40);
+    0011E E288      LDI	R24,0x28
+    0011F E090      LDI	R25,0
+    00120 8799      STD	Y+9,R25
+    00121 8788      STD	Y+8,R24
+    00122 2422      CLR	R2
+    00123 2433      CLR	R3
+    00124 823F      STD	Y+7,R3
+    00125 822E      STD	Y+6,R2
+    00126 823D      STD	Y+5,R3
+    00127 822C      STD	Y+4,R2
+    00128 EB80      LDI	R24,0xB0
+    00129 E094      LDI	R25,4
+    0012A 839B      STD	Y+3,R25
+    0012B 838A      STD	Y+2,R24
+    0012C E182      LDI	R24,0x12
+    0012D EF9D      LDI	R25,0xFD
+    0012E 8399      STD	Y+1,R25
+    0012F 8388      ST	Y,R24
+    00130 2722      CLR	R18
+    00131 2733      CLR	R19
+    00132 2700      CLR	R16
+    00133 2711      CLR	R17
+    00134 DF89      RCALL	_action_set
+(0046) break; //左脚左倾	  			-300/-400						#####
+    00135 C1B5      RJMP	0x02EB
+(0047) case 2:
+(0048) action_set(0,0,-600,0,1200,1200,100);
+    00136 E684      LDI	R24,0x64
+    00137 E090      LDI	R25,0
+    00138 8799      STD	Y+9,R25
+    00139 8788      STD	Y+8,R24
+    0013A EB80      LDI	R24,0xB0
+    0013B E094      LDI	R25,4
+    0013C 839F      STD	Y+7,R25
+    0013D 838E      STD	Y+6,R24
+    0013E 839D      STD	Y+5,R25
+    0013F 838C      STD	Y+4,R24
+    00140 2422      CLR	R2
+    00141 2433      CLR	R3
+    00142 823B      STD	Y+3,R3
+    00143 822A      STD	Y+2,R2
+    00144 EA88      LDI	R24,0xA8
+    00145 EF9D      LDI	R25,0xFD
+    00146 8399      STD	Y+1,R25
+    00147 8388      ST	Y,R24
+    00148 2722      CLR	R18
+    00149 2733      CLR	R19
+    0014A 2700      CLR	R16
+    0014B 2711      CLR	R17
+    0014C DF71      RCALL	_action_set
+(0049) break; //右抬脚，同时右脚放平							 #####
+    0014D C19D      RJMP	0x02EB
+(0050) //case 4:{action_set(700,700,-350,-400,700,700,50);break;} //左弯脚 3,4可以一起完成
+(0051) //case 5:{action_set(700,700,0,0,700,700,50);break;} //转正	
+(0052) case 3:
+(0053) action_set(300,600,0,0,600,900,75);
+    0014E E48B      LDI	R24,0x4B
+    0014F E090      LDI	R25,0
+    00150 8799      STD	Y+9,R25
+    00151 8788      STD	Y+8,R24
+    00152 E884      LDI	R24,0x84
+    00153 E093      LDI	R25,3
+    00154 839F      STD	Y+7,R25
+    00155 838E      STD	Y+6,R24
+    00156 E588      LDI	R24,0x58
+    00157 E092      LDI	R25,2
+    00158 839D      STD	Y+5,R25
+    00159 838C      STD	Y+4,R24
+    0015A 2422      CLR	R2
+    0015B 2433      CLR	R3
+    0015C 823B      STD	Y+3,R3
+    0015D 822A      STD	Y+2,R2
+    0015E 8239      STD	Y+1,R3
+    0015F 8228      ST	Y,R2
+    00160 E528      LDI	R18,0x58
+    00161 E032      LDI	R19,2
+    00162 E20C      LDI	R16,0x2C
+    00163 E011      LDI	R17,1
+    00164 DF59      RCALL	_action_set
+(0054) break; //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上#####
+    00165 C185      RJMP	0x02EB
+(0055) case 4:
+(0056) action_set(300,600,450,350,600,900,50);
+    00166 E382      LDI	R24,0x32
+    00167 E090      LDI	R25,0
+    00168 8799      STD	Y+9,R25
+    00169 8788      STD	Y+8,R24
+    0016A E884      LDI	R24,0x84
+    0016B E093      LDI	R25,3
+    0016C 839F      STD	Y+7,R25
+    0016D 838E      STD	Y+6,R24
+    0016E E588      LDI	R24,0x58
+    0016F E092      LDI	R25,2
+    00170 839D      STD	Y+5,R25
+    00171 838C      STD	Y+4,R24
+    00172 E58E      LDI	R24,0x5E
+    00173 E091      LDI	R25,1
+    00174 839B      STD	Y+3,R25
+    00175 838A      STD	Y+2,R24
+    00176 EC82      LDI	R24,0xC2
+    00177 8399      STD	Y+1,R25
+    00178 8388      ST	Y,R24
+    00179 E528      LDI	R18,0x58
+    0017A E032      LDI	R19,2
+    0017B E20C      LDI	R16,0x2C
+    0017C E011      LDI	R17,1
+    0017D DF40      RCALL	_action_set
+(0057) break; //左脚右倾	 	前倾								  #####
+    0017E C16C      RJMP	0x02EB
+(0058) //case 8:{action_set(400,700,-750,300,700,1000,50);break;} //右脚右倾，度数还得减小	 
+(0059) case 5:
+(0060) action_set(300,600,0,300,0,300,50);
+    0017F E382      LDI	R24,0x32
+    00180 E090      LDI	R25,0
+    00181 8799      STD	Y+9,R25
+    00182 8788      STD	Y+8,R24
+    00183 E28C      LDI	R24,0x2C
+    00184 E091      LDI	R25,1
+    00185 839F      STD	Y+7,R25
+    00186 838E      STD	Y+6,R24
+    00187 2422      CLR	R2
+    00188 2433      CLR	R3
+    00189 823D      STD	Y+5,R3
+    0018A 822C      STD	Y+4,R2
+    0018B 839B      STD	Y+3,R25
+    0018C 838A      STD	Y+2,R24
+    0018D 8239      STD	Y+1,R3
+    0018E 8228      ST	Y,R2
+    0018F E528      LDI	R18,0x58
+    00190 E032      LDI	R19,2
+    00191 E20C      LDI	R16,0x2C
+    00192 E011      LDI	R17,1
+    00193 DF2A      RCALL	_action_set
+(0061) break; //右脚立正  ，前倾
+    00194 C156      RJMP	0x02EB
+(0062) case 6:
+(0063) action_set(0,0,0,300,0,0,25);
+    00195 E189      LDI	R24,0x19
+    00196 E090      LDI	R25,0
+    00197 8799      STD	Y+9,R25
+    00198 8788      STD	Y+8,R24
+    00199 2422      CLR	R2
+    0019A 2433      CLR	R3
+    0019B 823F      STD	Y+7,R3
+    0019C 822E      STD	Y+6,R2
+    0019D 823D      STD	Y+5,R3
+    0019E 822C      STD	Y+4,R2
+    0019F E28C      LDI	R24,0x2C
+    001A0 E091      LDI	R25,1
+    001A1 839B      STD	Y+3,R25
+    001A2 838A      STD	Y+2,R24
+    001A3 8239      STD	Y+1,R3
+    001A4 8228      ST	Y,R2
+    001A5 2722      CLR	R18
+    001A6 2733      CLR	R19
+    001A7 2700      CLR	R16
+    001A8 2711      CLR	R17
+    001A9 DF14      RCALL	_action_set
+(0064) break; //左脚回正	 	同时，左脚放平，取消前倾			   #####
+    001AA C140      RJMP	0x02EB
+(0065) case 7:
+(0066) action_set(-600,-600,0,300,0,0,25);
+    001AB E189      LDI	R24,0x19
+    001AC E090      LDI	R25,0
+    001AD 8799      STD	Y+9,R25
+    001AE 8788      STD	Y+8,R24
+    001AF 2422      CLR	R2
+    001B0 2433      CLR	R3
+    001B1 823F      STD	Y+7,R3
+    001B2 822E      STD	Y+6,R2
+    001B3 823D      STD	Y+5,R3
+    001B4 822C      STD	Y+4,R2
+    001B5 E28C      LDI	R24,0x2C
+    001B6 E091      LDI	R25,1
+    001B7 839B      STD	Y+3,R25
+    001B8 838A      STD	Y+2,R24
+    001B9 8239      STD	Y+1,R3
+    001BA 8228      ST	Y,R2
+    001BB EA28      LDI	R18,0xA8
+    001BC EF3D      LDI	R19,0xFD
+    001BD EA08      LDI	R16,0xA8
+    001BE EF1D      LDI	R17,0xFD
+    001BF DEFE      RCALL	_action_set
+(0067) break; //左抬脚										   #####
+    001C0 C12A      RJMP	0x02EB
+(0068) //case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //右弯脚	11,12可以一起完成 ，前脚未着地
+(0069) //case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //右转正 
+(0070) case 8:
+(0071) action_set(-600,-400,0,0,-400,-600,75);
+    001C1 E48B      LDI	R24,0x4B
+    001C2 E090      LDI	R25,0
+    001C3 8799      STD	Y+9,R25
+    001C4 8788      STD	Y+8,R24
+    001C5 EA88      LDI	R24,0xA8
+    001C6 EF9D      LDI	R25,0xFD
+    001C7 839F      STD	Y+7,R25
+    001C8 838E      STD	Y+6,R24
+    001C9 E780      LDI	R24,0x70
+    001CA EF9E      LDI	R25,0xFE
+    001CB 839D      STD	Y+5,R25
+    001CC 838C      STD	Y+4,R24
+    001CD 2422      CLR	R2
+    001CE 2433      CLR	R3
+    001CF 823B      STD	Y+3,R3
+    001D0 822A      STD	Y+2,R2
+    001D1 8239      STD	Y+1,R3
+    001D2 8228      ST	Y,R2
+    001D3 E720      LDI	R18,0x70
+    001D4 EF3E      LDI	R19,0xFE
+    001D5 EA08      LDI	R16,0xA8
+    001D6 EF1D      LDI	R17,0xFD
+    001D7 DEE6      RCALL	_action_set
+(0072) break; //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上，左脚稍弯##### 
+    001D8 C112      RJMP	0x02EB
+(0073) case 9:
+(0074) action_set(-600,-400,-350,-450,-400,-600,50);
+    001D9 E382      LDI	R24,0x32
+    001DA E090      LDI	R25,0
+    001DB 8799      STD	Y+9,R25
+    001DC 8788      STD	Y+8,R24
+    001DD EA88      LDI	R24,0xA8
+    001DE EF9D      LDI	R25,0xFD
+    001DF 839F      STD	Y+7,R25
+    001E0 838E      STD	Y+6,R24
+    001E1 E780      LDI	R24,0x70
+    001E2 EF9E      LDI	R25,0xFE
+    001E3 839D      STD	Y+5,R25
+    001E4 838C      STD	Y+4,R24
+    001E5 E38E      LDI	R24,0x3E
+    001E6 839B      STD	Y+3,R25
+    001E7 838A      STD	Y+2,R24
+    001E8 EA82      LDI	R24,0xA2
+    001E9 8399      STD	Y+1,R25
+    001EA 8388      ST	Y,R24
+    001EB E720      LDI	R18,0x70
+    001EC EF3E      LDI	R19,0xFE
+    001ED EA08      LDI	R16,0xA8
+    001EE EF1D      LDI	R17,0xFD
+    001EF DECE      RCALL	_action_set
+(0075) break; //右脚左倾   	前倾								#####
+    001F0 C0FA      RJMP	0x02EB
+(0076) //case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //左脚左倾   
+(0077) case 10:
+(0078) action_set(0,0,-300,-450,-600,-600,50);
+    001F1 E382      LDI	R24,0x32
+    001F2 E090      LDI	R25,0
+    001F3 8799      STD	Y+9,R25
+    001F4 8788      STD	Y+8,R24
+    001F5 EA88      LDI	R24,0xA8
+    001F6 EF9D      LDI	R25,0xFD
+    001F7 839F      STD	Y+7,R25
+    001F8 838E      STD	Y+6,R24
+    001F9 839D      STD	Y+5,R25
+    001FA 838C      STD	Y+4,R24
+    001FB E38E      LDI	R24,0x3E
+    001FC EF9E      LDI	R25,0xFE
+    001FD 839B      STD	Y+3,R25
+    001FE 838A      STD	Y+2,R24
+    001FF ED84      LDI	R24,0xD4
+    00200 8399      STD	Y+1,R25
+    00201 8388      ST	Y,R24
+    00202 2722      CLR	R18
+    00203 2733      CLR	R19
+    00204 2700      CLR	R16
+    00205 2711      CLR	R17
+    00206 DEB7      RCALL	_action_set
+(0079) break; //左立正，前倾
+    00207 C0E3      RJMP	0x02EB
+(0080) //case 10:{action_set(0,0,-300,0,0,0,75);break;} //右回正，取消前倾可以回到3，右抬脚，或者回到0		  #####
+(0081) 
+(0082) case 11:
+(0083) action_set(0,0,-300,0,-600,-800,50);
+    00208 E382      LDI	R24,0x32
+    00209 E090      LDI	R25,0
+    0020A 8799      STD	Y+9,R25
+    0020B 8788      STD	Y+8,R24
+    0020C EE80      LDI	R24,0xE0
+    0020D EF9C      LDI	R25,0xFC
+    0020E 839F      STD	Y+7,R25
+    0020F 838E      STD	Y+6,R24
+    00210 EA88      LDI	R24,0xA8
+    00211 EF9D      LDI	R25,0xFD
+    00212 839D      STD	Y+5,R25
+    00213 838C      STD	Y+4,R24
+    00214 2422      CLR	R2
+    00215 2433      CLR	R3
+    00216 823B      STD	Y+3,R3
+    00217 822A      STD	Y+2,R2
+    00218 ED84      LDI	R24,0xD4
+    00219 EF9E      LDI	R25,0xFE
+    0021A 8399      STD	Y+1,R25
+    0021B 8388      ST	Y,R24
+    0021C 2722      CLR	R18
+    0021D 2733      CLR	R19
+    0021E 2700      CLR	R16
+    0021F 2711      CLR	R17
+    00220 DE9D      RCALL	_action_set
+(0084) break; //右后抬脚，同时右脚放平							 #####
+    00221 C0C9      RJMP	0x02EB
+(0085) case 12:
+(0086) action_set(-750,-400,0,0,-400,-750,75);
+    00222 E48B      LDI	R24,0x4B
+    00223 E090      LDI	R25,0
+    00224 8799      STD	Y+9,R25
+    00225 8788      STD	Y+8,R24
+    00226 E182      LDI	R24,0x12
+    00227 EF9D      LDI	R25,0xFD
+    00228 839F      STD	Y+7,R25
+    00229 838E      STD	Y+6,R24
+    0022A E780      LDI	R24,0x70
+    0022B EF9E      LDI	R25,0xFE
+    0022C 839D      STD	Y+5,R25
+    0022D 838C      STD	Y+4,R24
+    0022E 2422      CLR	R2
+    0022F 2433      CLR	R3
+    00230 823B      STD	Y+3,R3
+    00231 822A      STD	Y+2,R2
+    00232 8239      STD	Y+1,R3
+    00233 8228      ST	Y,R2
+    00234 E720      LDI	R18,0x70
+    00235 EF3E      LDI	R19,0xFE
+    00236 E102      LDI	R16,0x12
+    00237 EF1D      LDI	R17,0xFD
+    00238 DE85      RCALL	_action_set
+(0087) break; //后倾，1号舵机+500，6号舵机-500，重心转移到后脚，右脚稍弯#####
+    00239 C0B1      RJMP	0x02EB
+(0088) case 13:
+(0089) action_set(-750,-400,400,300,-400,-750,50);
+    0023A E382      LDI	R24,0x32
+    0023B E090      LDI	R25,0
+    0023C 8799      STD	Y+9,R25
+    0023D 8788      STD	Y+8,R24
+    0023E E182      LDI	R24,0x12
+    0023F EF9D      LDI	R25,0xFD
+    00240 839F      STD	Y+7,R25
+    00241 838E      STD	Y+6,R24
+    00242 E780      LDI	R24,0x70
+    00243 EF9E      LDI	R25,0xFE
+    00244 839D      STD	Y+5,R25
+    00245 838C      STD	Y+4,R24
+    00246 E28C      LDI	R24,0x2C
+    00247 E091      LDI	R25,1
+    00248 839B      STD	Y+3,R25
+    00249 838A      STD	Y+2,R24
+    0024A E980      LDI	R24,0x90
+    0024B 8399      STD	Y+1,R25
+    0024C 8388      ST	Y,R24
+    0024D E720      LDI	R18,0x70
+    0024E EF3E      LDI	R19,0xFE
+    0024F E102      LDI	R16,0x12
+    00250 EF1D      LDI	R17,0xFD
+    00251 DE6C      RCALL	_action_set
+(0090) break; //脚右倾	 	
+    00252 C098      RJMP	0x02EB
+(0091) case 14:action_set(-750,-600,0,250,0,0,50);
+    00253 E382      LDI	R24,0x32
+    00254 E090      LDI	R25,0
+    00255 8799      STD	Y+9,R25
+    00256 8788      STD	Y+8,R24
+    00257 2422      CLR	R2
+    00258 2433      CLR	R3
+    00259 823F      STD	Y+7,R3
+    0025A 822E      STD	Y+6,R2
+    0025B 823D      STD	Y+5,R3
+    0025C 822C      STD	Y+4,R2
+    0025D EF8A      LDI	R24,0xFA
+    0025E 839B      STD	Y+3,R25
+    0025F 838A      STD	Y+2,R24
+    00260 8239      STD	Y+1,R3
+    00261 8228      ST	Y,R2
+    00262 EA28      LDI	R18,0xA8
+    00263 EF3D      LDI	R19,0xFD
+    00264 E102      LDI	R16,0x12
+    00265 EF1D      LDI	R17,0xFD
+    00266 DE57      RCALL	_action_set
+(0092) break; //右脚回正	 	同时，左脚放平，取消前倾			   #####								  #####
+    00267 C083      RJMP	0x02EB
+(0093) case 15:
+(0094) action_set(0,0,0,250,0,0,40);
+    00268 E288      LDI	R24,0x28
+    00269 E090      LDI	R25,0
+    0026A 8799      STD	Y+9,R25
+    0026B 8788      STD	Y+8,R24
+    0026C 2422      CLR	R2
+    0026D 2433      CLR	R3
+    0026E 823F      STD	Y+7,R3
+    0026F 822E      STD	Y+6,R2
+    00270 823D      STD	Y+5,R3
+    00271 822C      STD	Y+4,R2
+    00272 EF8A      LDI	R24,0xFA
+    00273 839B      STD	Y+3,R25
+    00274 838A      STD	Y+2,R24
+    00275 8239      STD	Y+1,R3
+    00276 8228      ST	Y,R2
+    00277 2722      CLR	R18
+    00278 2733      CLR	R19
+    00279 2700      CLR	R16
+    0027A 2711      CLR	R17
+    0027B DE42      RCALL	_action_set
+(0095) break; //右脚回正	 	同时，左脚放平，取消前倾			   #####
+    0027C C06E      RJMP	0x02EB
+(0096) case 16:
+(0097) action_set(600,600,0,250,0,0,40);
+    0027D E288      LDI	R24,0x28
+    0027E E090      LDI	R25,0
+    0027F 8799      STD	Y+9,R25
+    00280 8788      STD	Y+8,R24
+    00281 2422      CLR	R2
+    00282 2433      CLR	R3
+    00283 823F      STD	Y+7,R3
+    00284 822E      STD	Y+6,R2
+    00285 823D      STD	Y+5,R3
+    00286 822C      STD	Y+4,R2
+    00287 EF8A      LDI	R24,0xFA
+    00288 839B      STD	Y+3,R25
+    00289 838A      STD	Y+2,R24
+    0028A 8239      STD	Y+1,R3
+    0028B 8228      ST	Y,R2
+    0028C E528      LDI	R18,0x58
+    0028D E032      LDI	R19,2
+    0028E E508      LDI	R16,0x58
+    0028F E012      LDI	R17,2
+    00290 DE2D      RCALL	_action_set
+(0098) break; //左后抬脚										   #####
+    00291 C059      RJMP	0x02EB
+(0099) case 17:
+(0100) action_set(600,600,0,0,600,600,50);
+    00292 E382      LDI	R24,0x32
+    00293 E090      LDI	R25,0
+    00294 8799      STD	Y+9,R25
+    00295 8788      STD	Y+8,R24
+    00296 E588      LDI	R24,0x58
+    00297 E092      LDI	R25,2
+    00298 839F      STD	Y+7,R25
+    00299 838E      STD	Y+6,R24
+    0029A 839D      STD	Y+5,R25
+    0029B 838C      STD	Y+4,R24
+    0029C 2422      CLR	R2
+    0029D 2433      CLR	R3
+    0029E 823B      STD	Y+3,R3
+    0029F 822A      STD	Y+2,R2
+    002A0 8239      STD	Y+1,R3
+    002A1 8228      ST	Y,R2
+    002A2 E528      LDI	R18,0x58
+    002A3 E032      LDI	R19,2
+    002A4 E508      LDI	R16,0x58
+    002A5 E012      LDI	R17,2
+    002A6 DE17      RCALL	_action_set
+(0101) break; //后倾，1号舵机+500，6号舵机-500，把重心转移到前脚上##### 
+    002A7 C043      RJMP	0x02EB
+(0102) case 18:
+(0103) action_set(600,600,-350,-450,600,600,50);
+    002A8 E382      LDI	R24,0x32
+    002A9 E090      LDI	R25,0
+    002AA 8799      STD	Y+9,R25
+    002AB 8788      STD	Y+8,R24
+    002AC E588      LDI	R24,0x58
+    002AD E092      LDI	R25,2
+    002AE 839F      STD	Y+7,R25
+    002AF 838E      STD	Y+6,R24
+    002B0 839D      STD	Y+5,R25
+    002B1 838C      STD	Y+4,R24
+    002B2 E38E      LDI	R24,0x3E
+    002B3 EF9E      LDI	R25,0xFE
+    002B4 839B      STD	Y+3,R25
+    002B5 838A      STD	Y+2,R24
+    002B6 EA82      LDI	R24,0xA2
+    002B7 8399      STD	Y+1,R25
+    002B8 8388      ST	Y,R24
+    002B9 E528      LDI	R18,0x58
+    002BA E032      LDI	R19,2
+    002BB E508      LDI	R16,0x58
+    002BC E012      LDI	R17,2
+    002BD DE00      RCALL	_action_set
+(0104) break; //脚左倾   									#####
+    002BE C02C      RJMP	0x02EB
+(0105) case 19:
+(0106) action_set(0,0,-300,-450,600,600,50);
+    002BF E382      LDI	R24,0x32
+    002C0 E090      LDI	R25,0
+    002C1 8799      STD	Y+9,R25
+    002C2 8788      STD	Y+8,R24
+    002C3 E588      LDI	R24,0x58
+    002C4 E092      LDI	R25,2
+    002C5 839F      STD	Y+7,R25
+    002C6 838E      STD	Y+6,R24
+    002C7 839D      STD	Y+5,R25
+    002C8 838C      STD	Y+4,R24
+    002C9 E38E      LDI	R24,0x3E
+    002CA EF9E      LDI	R25,0xFE
+    002CB 839B      STD	Y+3,R25
+    002CC 838A      STD	Y+2,R24
+    002CD ED84      LDI	R24,0xD4
+    002CE 8399      STD	Y+1,R25
+    002CF 8388      ST	Y,R24
+    002D0 2722      CLR	R18
+    002D1 2733      CLR	R19
+    002D2 2700      CLR	R16
+    002D3 2711      CLR	R17
+    002D4 DDE9      RCALL	_action_set
+(0107) break; //脚左倾   									#####
+    002D5 C015      RJMP	0x02EB
+(0108) case 20:
+(0109) action_set(0,0,-300,0,0,0,50);
+    002D6 E382      LDI	R24,0x32
+    002D7 E090      LDI	R25,0
+    002D8 8799      STD	Y+9,R25
+    002D9 8788      STD	Y+8,R24
+    002DA 2422      CLR	R2
+    002DB 2433      CLR	R3
+    002DC 823F      STD	Y+7,R3
+    002DD 822E      STD	Y+6,R2
+    002DE 823D      STD	Y+5,R3
+    002DF 822C      STD	Y+4,R2
+    002E0 823B      STD	Y+3,R3
+    002E1 822A      STD	Y+2,R2
+    002E2 ED84      LDI	R24,0xD4
+    002E3 EF9E      LDI	R25,0xFE
+    002E4 8399      STD	Y+1,R25
+    002E5 8388      ST	Y,R24
+    002E6 2722      CLR	R18
+    002E7 2733      CLR	R19
+    002E8 2700      CLR	R16
+    002E9 2711      CLR	R17
+    002EA DDD3      RCALL	_action_set
+(0110) break; //左回正，取消前倾可以回到3，右抬脚，或者回到0		  #####
+    002EB 962A      ADIW	R28,0xA
+    002EC 9159      LD	R21,Y+
+    002ED 9149      LD	R20,Y+
+    002EE 9508      RET
+_action_series_do:
+    002EF 934A      ST	-Y,R20
+    002F0 935A      ST	-Y,R21
+(0111) 
+(0112) }
+(0113) }
+(0114) 
+(0115) 
+(0116) void action_series_do()
+(0117) {switch(action_series_number)
+    002F1 9020 0062 LDS	R2,action_series_number
+    002F3 9030 0063 LDS	R3,action_series_number+1
+    002F5 01C1      MOVW	R24,R2
+    002F6 3081      CPI	R24,1
+    002F7 E0E0      LDI	R30,0
+    002F8 079E      CPC	R25,R30
+    002F9 F409      BNE	0x02FB
+    002FA C02E      RJMP	0x0329
+    002FB 3082      CPI	R24,2
+    002FC E0E0      LDI	R30,0
+    002FD 079E      CPC	R25,R30
+    002FE F409      BNE	0x0300
+    002FF C087      RJMP	0x0387
+    00300 3083      CPI	R24,3
+    00301 E0E0      LDI	R30,0
+    00302 079E      CPC	R25,R30
+    00303 F409      BNE	0x0305
+    00304 C0D7      RJMP	0x03DC
+    00305 3084      CPI	R24,4
+    00306 E0E0      LDI	R30,0
+    00307 079E      CPC	R25,R30
+    00308 F409      BNE	0x030A
+    00309 C12F      RJMP	0x0439
+    0030A 3085      CPI	R24,5
+    0030B E0E0      LDI	R30,0
+    0030C 079E      CPC	R25,R30
+    0030D F409      BNE	0x030F
+    0030E C17F      RJMP	0x048E
+    0030F 3086      CPI	R24,6
+    00310 E0E0      LDI	R30,0
+    00311 079E      CPC	R25,R30
+    00312 F409      BNE	0x0314
+    00313 C1A7      RJMP	0x04BB
+    00314 3087      CPI	R24,7
+    00315 E0E0      LDI	R30,0
+    00316 079E      CPC	R25,R30
+    00317 F409      BNE	0x0319
+    00318 C1CF      RJMP	0x04E8
+    00319 3088      CPI	R24,0x8
+    0031A E0E0      LDI	R30,0
+    0031B 079E      CPC	R25,R30
+    0031C F409      BNE	0x031E
+    0031D C1F7      RJMP	0x0515
+    0031E 3089      CPI	R24,0x9
+    0031F E0E0      LDI	R30,0
+    00320 079E      CPC	R25,R30
+    00321 F409      BNE	0x0323
+    00322 C21F      RJMP	0x0542
+    00323 308A      CPI	R24,0xA
+    00324 E0E0      LDI	R30,0
+    00325 079E      CPC	R25,R30
+    00326 F409      BNE	0x0328
+    00327 C24F      RJMP	0x0577
+    00328 C272      RJMP	0x059B
+(0118) {	  
+(0119) 	case 1:
+(0120) 	{switch(action_series_step)
+    00329 9020 0060 LDS	R2,action_series_step
+    0032B 9030 0061 LDS	R3,action_series_step+1
+    0032D 01C1      MOVW	R24,R2
+    0032E 3081      CPI	R24,1
+    0032F E0E0      LDI	R30,0
+    00330 079E      CPC	R25,R30
+    00331 F149      BEQ	0x035B
+    00332 3082      CPI	R24,2
+    00333 E0E0      LDI	R30,0
+    00334 079E      CPC	R25,R30
+    00335 F149      BEQ	0x035F
+    00336 3083      CPI	R24,3
+    00337 E0E0      LDI	R30,0
+    00338 079E      CPC	R25,R30
+    00339 F149      BEQ	0x0363
+    0033A 3084      CPI	R24,4
+    0033B E0E0      LDI	R30,0
+    0033C 079E      CPC	R25,R30
+    0033D F149      BEQ	0x0367
+    0033E 3085      CPI	R24,5
+    0033F E0E0      LDI	R30,0
+    00340 079E      CPC	R25,R30
+    00341 F149      BEQ	0x036B
+    00342 3086      CPI	R24,6
+    00343 E0E0      LDI	R30,0
+    00344 079E      CPC	R25,R30
+    00345 F149      BEQ	0x036F
+    00346 3087      CPI	R24,7
+    00347 E0E0      LDI	R30,0
+    00348 079E      CPC	R25,R30
+    00349 F149      BEQ	0x0373
+    0034A 3088      CPI	R24,0x8
+    0034B E0E0      LDI	R30,0
+    0034C 079E      CPC	R25,R30
+    0034D F149      BEQ	0x0377
+    0034E 3089      CPI	R24,0x9
+    0034F E0E0      LDI	R30,0
+    00350 079E      CPC	R25,R30
+    00351 F149      BEQ	0x037B
+    00352 308A      CPI	R24,0xA
+    00353 E0E0      LDI	R30,0
+    00354 079E      CPC	R25,R30
+    00355 F149      BEQ	0x037F
+    00356 308B      CPI	R24,0xB
+    00357 E0E0      LDI	R30,0
+    00358 079E      CPC	R25,R30
+    00359 F149      BEQ	0x0383
+    0035A C240      RJMP	0x059B
+(0121) 		{case 1 : {action_base(20);break;} 
+    0035B E104      LDI	R16,0x14
+    0035C E010      LDI	R17,0
+    0035D DD92      RCALL	_action_base
+    0035E C23C      RJMP	0x059B
+(0122)     	 case 2 : {action_base(10);break;}
+    0035F E00A      LDI	R16,0xA
+    00360 E010      LDI	R17,0
+    00361 DD8E      RCALL	_action_base
+    00362 C238      RJMP	0x059B
+(0123) 		 case 3 : {action_base(9);break;}
+    00363 E009      LDI	R16,0x9
+    00364 E010      LDI	R17,0
+    00365 DD8A      RCALL	_action_base
+    00366 C234      RJMP	0x059B
+(0124) 		 case 4 : {action_base(8);break;}
+    00367 E008      LDI	R16,0x8
+    00368 E010      LDI	R17,0
+    00369 DD86      RCALL	_action_base
+    0036A C230      RJMP	0x059B
+(0125) 		 case 5 : {action_base(7);break;}
+    0036B E007      LDI	R16,7
+    0036C E010      LDI	R17,0
+    0036D DD82      RCALL	_action_base
+    0036E C22C      RJMP	0x059B
+(0126) 		 case 6 : {action_base(6);break;}
+    0036F E006      LDI	R16,6
+    00370 E010      LDI	R17,0
+    00371 DD7E      RCALL	_action_base
+    00372 C228      RJMP	0x059B
+(0127) 		 case 7 : {action_base(5);break;}
+    00373 E005      LDI	R16,5
+    00374 E010      LDI	R17,0
+    00375 DD7A      RCALL	_action_base
+    00376 C224      RJMP	0x059B
+(0128) 		 case 8 : {action_base(4);break;}
+    00377 E004      LDI	R16,4
+    00378 E010      LDI	R17,0
+    00379 DD76      RCALL	_action_base
+    0037A C220      RJMP	0x059B
+(0129) 		 case 9 : {action_base(3);break;}
+    0037B E003      LDI	R16,3
+    0037C E010      LDI	R17,0
+    0037D DD72      RCALL	_action_base
+    0037E C21C      RJMP	0x059B
+(0130) 		 case 10 : {action_base(2);break;}
+    0037F E002      LDI	R16,2
+    00380 E010      LDI	R17,0
+    00381 DD6E      RCALL	_action_base
+    00382 C218      RJMP	0x059B
+(0131) 		 case 11 : {action_base(1);break;}
+    00383 E001      LDI	R16,1
+    00384 E010      LDI	R17,0
+    00385 DD6A      RCALL	_action_base
+(0132) 		};break;} 
+    00386 C214      RJMP	0x059B
+(0133) 	 case 2:
+(0134) 	{switch(action_series_step)
+    00387 9140 0060 LDS	R20,action_series_step
+    00389 9150 0061 LDS	R21,action_series_step+1
+    0038B 3041      CPI	R20,1
+    0038C E0E0      LDI	R30,0
+    0038D 075E      CPC	R21,R30
+    0038E F129      BEQ	0x03B4
+    0038F 3042      CPI	R20,2
+    00390 E0E0      LDI	R30,0
+    00391 075E      CPC	R21,R30
+    00392 F129      BEQ	0x03B8
+    00393 3043      CPI	R20,3
+    00394 E0E0      LDI	R30,0
+    00395 075E      CPC	R21,R30
+    00396 F129      BEQ	0x03BC
+    00397 3044      CPI	R20,4
+    00398 E0E0      LDI	R30,0
+    00399 075E      CPC	R21,R30
+    0039A F129      BEQ	0x03C0
+    0039B 3045      CPI	R20,5
+    0039C E0E0      LDI	R30,0
+    0039D 075E      CPC	R21,R30
+    0039E F129      BEQ	0x03C4
+    0039F 3046      CPI	R20,6
+    003A0 E0E0      LDI	R30,0
+    003A1 075E      CPC	R21,R30
+    003A2 F129      BEQ	0x03C8
+    003A3 3047      CPI	R20,7
+    003A4 E0E0      LDI	R30,0
+    003A5 075E      CPC	R21,R30
+    003A6 F129      BEQ	0x03CC
+    003A7 3048      CPI	R20,0x8
+    003A8 E0E0      LDI	R30,0
+    003A9 075E      CPC	R21,R30
+    003AA F129      BEQ	0x03D0
+    003AB 3049      CPI	R20,0x9
+    003AC E0E0      LDI	R30,0
+    003AD 075E      CPC	R21,R30
+    003AE F129      BEQ	0x03D4
+    003AF 304A      CPI	R20,0xA
+    003B0 E0E0      LDI	R30,0
+    003B1 075E      CPC	R21,R30
+    003B2 F129      BEQ	0x03D8
+    003B3 C1E7      RJMP	0x059B
+(0135) 		{case 1 : {action_base(20);break;} 
+    003B4 E104      LDI	R16,0x14
+    003B5 E010      LDI	R17,0
+    003B6 DD39      RCALL	_action_base
+    003B7 C1E3      RJMP	0x059B
+(0136)     	 case 2 : {action_base(10);break;}
+    003B8 E00A      LDI	R16,0xA
+    003B9 E010      LDI	R17,0
+    003BA DD35      RCALL	_action_base
+    003BB C1DF      RJMP	0x059B
+(0137) 		 case 3 : {action_base(9);break;}
+    003BC E009      LDI	R16,0x9
+    003BD E010      LDI	R17,0
+    003BE DD31      RCALL	_action_base
+    003BF C1DB      RJMP	0x059B
+(0138) 		 case 4 : {action_base(8);break;}
+    003C0 E008      LDI	R16,0x8
+    003C1 E010      LDI	R17,0
+    003C2 DD2D      RCALL	_action_base
+    003C3 C1D7      RJMP	0x059B
+(0139) 		 case 5 : {action_base(7);break;}
+    003C4 E007      LDI	R16,7
+    003C5 E010      LDI	R17,0
+    003C6 DD29      RCALL	_action_base
+    003C7 C1D3      RJMP	0x059B
+(0140) 		 case 6 : {action_base(6);break;}
+    003C8 E006      LDI	R16,6
+    003C9 E010      LDI	R17,0
+    003CA DD25      RCALL	_action_base
+    003CB C1CF      RJMP	0x059B
+(0141) 		 case 7 : {action_base(5);break;}
+    003CC E005      LDI	R16,5
+    003CD E010      LDI	R17,0
+    003CE DD21      RCALL	_action_base
+    003CF C1CB      RJMP	0x059B
+(0142) 		 case 8 : {action_base(4);break;}
+    003D0 E004      LDI	R16,4
+    003D1 E010      LDI	R17,0
+    003D2 DD1D      RCALL	_action_base
+    003D3 C1C7      RJMP	0x059B
+(0143) 		 case 9 : {action_base(3);break;}
+    003D4 E003      LDI	R16,3
+    003D5 E010      LDI	R17,0
+    003D6 DD19      RCALL	_action_base
+    003D7 C1C3      RJMP	0x059B
+(0144) 		 case 10 : {action_base(2);break;}
+    003D8 E002      LDI	R16,2
+    003D9 E010      LDI	R17,0
+    003DA DD15      RCALL	_action_base
+(0145) 		};break;}
+    003DB C1BF      RJMP	0x059B
+(0146) 
+(0147) 		case 3:
+(0148) 	{switch(action_series_step)
+    003DC 9140 0060 LDS	R20,action_series_step
+    003DE 9150 0061 LDS	R21,action_series_step+1
+    003E0 3041      CPI	R20,1
+    003E1 E0E0      LDI	R30,0
+    003E2 075E      CPC	R21,R30
+    003E3 F149      BEQ	0x040D
+    003E4 3042      CPI	R20,2
+    003E5 E0E0      LDI	R30,0
+    003E6 075E      CPC	R21,R30
+    003E7 F149      BEQ	0x0411
+    003E8 3043      CPI	R20,3
+    003E9 E0E0      LDI	R30,0
+    003EA 075E      CPC	R21,R30
+    003EB F149      BEQ	0x0415
+    003EC 3044      CPI	R20,4
+    003ED E0E0      LDI	R30,0
+    003EE 075E      CPC	R21,R30
+    003EF F149      BEQ	0x0419
+    003F0 3045      CPI	R20,5
+    003F1 E0E0      LDI	R30,0
+    003F2 075E      CPC	R21,R30
+    003F3 F149      BEQ	0x041D
+    003F4 3046      CPI	R20,6
+    003F5 E0E0      LDI	R30,0
+    003F6 075E      CPC	R21,R30
+    003F7 F149      BEQ	0x0421
+    003F8 3047      CPI	R20,7
+    003F9 E0E0      LDI	R30,0
+    003FA 075E      CPC	R21,R30
+    003FB F149      BEQ	0x0425
+    003FC 3048      CPI	R20,0x8
+    003FD E0E0      LDI	R30,0
+    003FE 075E      CPC	R21,R30
+    003FF F149      BEQ	0x0429
+    00400 3049      CPI	R20,0x9
+    00401 E0E0      LDI	R30,0
+    00402 075E      CPC	R21,R30
+    00403 F149      BEQ	0x042D
+    00404 304A      CPI	R20,0xA
+    00405 E0E0      LDI	R30,0
+    00406 075E      CPC	R21,R30
+    00407 F149      BEQ	0x0431
+    00408 304B      CPI	R20,0xB
+    00409 E0E0      LDI	R30,0
+    0040A 075E      CPC	R21,R30
+    0040B F149      BEQ	0x0435
+    0040C C18E      RJMP	0x059B
+(0149) 		{case 1 : {action_base(20);break;}
+    0040D E104      LDI	R16,0x14
+    0040E E010      LDI	R17,0
+    0040F DCE0      RCALL	_action_base
+    00410 C18A      RJMP	0x059B
+(0150) 		 case 2 : {action_base(19);break;}
+    00411 E103      LDI	R16,0x13
+    00412 E010      LDI	R17,0
+    00413 DCDC      RCALL	_action_base
+    00414 C186      RJMP	0x059B
+(0151) 		 case 3 : {action_base(18);break;}
+    00415 E102      LDI	R16,0x12
+    00416 E010      LDI	R17,0
+    00417 DCD8      RCALL	_action_base
+    00418 C182      RJMP	0x059B
+(0152) 		 case 4 : {action_base(17);break;}
+    00419 E101      LDI	R16,0x11
+    0041A E010      LDI	R17,0
+    0041B DCD4      RCALL	_action_base
+    0041C C17E      RJMP	0x059B
+(0153) 		 case 5 : {action_base(16);break;}
+    0041D E100      LDI	R16,0x10
+    0041E E010      LDI	R17,0
+    0041F DCD0      RCALL	_action_base
+    00420 C17A      RJMP	0x059B
+(0154) 		 case 6 : {action_base(15);break;}
+    00421 E00F      LDI	R16,0xF
+    00422 E010      LDI	R17,0
+    00423 DCCC      RCALL	_action_base
+    00424 C176      RJMP	0x059B
+(0155) 		 case 7 : {action_base(14);break;}
+    00425 E00E      LDI	R16,0xE
+    00426 E010      LDI	R17,0
+    00427 DCC8      RCALL	_action_base
+    00428 C172      RJMP	0x059B
+(0156) 		 case 8 : {action_base(13);break;}
+    00429 E00D      LDI	R16,0xD
+    0042A E010      LDI	R17,0
+    0042B DCC4      RCALL	_action_base
+    0042C C16E      RJMP	0x059B
+(0157) 		 case 9 : {action_base(12);break;}
+    0042D E00C      LDI	R16,0xC
+    0042E E010      LDI	R17,0
+    0042F DCC0      RCALL	_action_base
+    00430 C16A      RJMP	0x059B
+(0158) 		 case 10 : {action_base(11);break;}
+    00431 E00B      LDI	R16,0xB
+    00432 E010      LDI	R17,0
+    00433 DCBC      RCALL	_action_base
+    00434 C166      RJMP	0x059B
+(0159) 		 case 11 : {action_base(1);break;}
+    00435 E001      LDI	R16,1
+    00436 E010      LDI	R17,0
+    00437 DCB8      RCALL	_action_base
+(0160) 		};break;}
+    00438 C162      RJMP	0x059B
+(0161) 		case 4:
+(0162) 	{switch(action_series_step)
+    00439 9140 0060 LDS	R20,action_series_step
+    0043B 9150 0061 LDS	R21,action_series_step+1
+    0043D 3041      CPI	R20,1
+    0043E E0E0      LDI	R30,0
+    0043F 075E      CPC	R21,R30
+    00440 F129      BEQ	0x0466
+    00441 3042      CPI	R20,2
+    00442 E0E0      LDI	R30,0
+    00443 075E      CPC	R21,R30
+    00444 F129      BEQ	0x046A
+    00445 3043      CPI	R20,3
+    00446 E0E0      LDI	R30,0
+    00447 075E      CPC	R21,R30
+    00448 F129      BEQ	0x046E
+    00449 3044      CPI	R20,4
+    0044A E0E0      LDI	R30,0
+    0044B 075E      CPC	R21,R30
+    0044C F129      BEQ	0x0472
+    0044D 3045      CPI	R20,5
+    0044E E0E0      LDI	R30,0
+    0044F 075E      CPC	R21,R30
+    00450 F129      BEQ	0x0476
+    00451 3046      CPI	R20,6
+    00452 E0E0      LDI	R30,0
+    00453 075E      CPC	R21,R30
+    00454 F129      BEQ	0x047A
+    00455 3047      CPI	R20,7
+    00456 E0E0      LDI	R30,0
+    00457 075E      CPC	R21,R30
+    00458 F129      BEQ	0x047E
+    00459 3048      CPI	R20,0x8
+    0045A E0E0      LDI	R30,0
+    0045B 075E      CPC	R21,R30
+    0045C F129      BEQ	0x0482
+    0045D 3049      CPI	R20,0x9
+    0045E E0E0      LDI	R30,0
+    0045F 075E      CPC	R21,R30
+    00460 F129      BEQ	0x0486
+    00461 304A      CPI	R20,0xA
+    00462 E0E0      LDI	R30,0
+    00463 075E      CPC	R21,R30
+    00464 F129      BEQ	0x048A
+    00465 C135      RJMP	0x059B
+(0163) 		{case 1 : {action_base(20);break;}
+    00466 E104      LDI	R16,0x14
+    00467 E010      LDI	R17,0
+    00468 DC87      RCALL	_action_base
+    00469 C131      RJMP	0x059B
+(0164) 		 case 2 : {action_base(19);break;}
+    0046A E103      LDI	R16,0x13
+    0046B E010      LDI	R17,0
+    0046C DC83      RCALL	_action_base
+    0046D C12D      RJMP	0x059B
+(0165) 		 case 3 : {action_base(18);break;}
+    0046E E102      LDI	R16,0x12
+    0046F E010      LDI	R17,0
+    00470 DC7F      RCALL	_action_base
+    00471 C129      RJMP	0x059B
+(0166) 		 case 4 : {action_base(17);break;}
+    00472 E101      LDI	R16,0x11
+    00473 E010      LDI	R17,0
+    00474 DC7B      RCALL	_action_base
+    00475 C125      RJMP	0x059B
+(0167) 		 case 5 : {action_base(16);break;}
+    00476 E100      LDI	R16,0x10
+    00477 E010      LDI	R17,0
+    00478 DC77      RCALL	_action_base
+    00479 C121      RJMP	0x059B
+(0168) 		 case 6 : {action_base(15);break;}
+    0047A E00F      LDI	R16,0xF
+    0047B E010      LDI	R17,0
+    0047C DC73      RCALL	_action_base
+    0047D C11D      RJMP	0x059B
+(0169) 		 case 7 : {action_base(14);break;}
+    0047E E00E      LDI	R16,0xE
+    0047F E010      LDI	R17,0
+    00480 DC6F      RCALL	_action_base
+    00481 C119      RJMP	0x059B
+(0170) 		 case 8 : {action_base(13);break;}
+    00482 E00D      LDI	R16,0xD
+    00483 E010      LDI	R17,0
+    00484 DC6B      RCALL	_action_base
+    00485 C115      RJMP	0x059B
+(0171) 		 case 9 : {action_base(12);break;}
+    00486 E00C      LDI	R16,0xC
+    00487 E010      LDI	R17,0
+    00488 DC67      RCALL	_action_base
+    00489 C111      RJMP	0x059B
+(0172) 		 case 10 : {action_base(11);break;}
+    0048A E00B      LDI	R16,0xB
+    0048B E010      LDI	R17,0
+    0048C DC63      RCALL	_action_base
+(0173) 		};break;}
+    0048D C10D      RJMP	0x059B
+(0174) 		case 5:
+(0175) 	{switch(action_series_step)
+    0048E 9140 0060 LDS	R20,action_series_step
+    00490 9150 0061 LDS	R21,action_series_step+1
+    00492 3041      CPI	R20,1
+    00493 E0E0      LDI	R30,0
+    00494 075E      CPC	R21,R30
+    00495 F089      BEQ	0x04A7
+    00496 3042      CPI	R20,2
+    00497 E0E0      LDI	R30,0
+    00498 075E      CPC	R21,R30
+    00499 F089      BEQ	0x04AB
+    0049A 3043      CPI	R20,3
+    0049B E0E0      LDI	R30,0
+    0049C 075E      CPC	R21,R30
+    0049D F089      BEQ	0x04AF
+    0049E 3044      CPI	R20,4
+    0049F E0E0      LDI	R30,0
+    004A0 075E      CPC	R21,R30
+    004A1 F089      BEQ	0x04B3
+    004A2 3045      CPI	R20,5
+    004A3 E0E0      LDI	R30,0
+    004A4 075E      CPC	R21,R30
+    004A5 F089      BEQ	0x04B7
+    004A6 C0F4      RJMP	0x059B
+(0176) 		{case 1 : {action_base(0);break;}
+    004A7 2700      CLR	R16
+    004A8 2711      CLR	R17
+    004A9 DC46      RCALL	_action_base
+    004AA C0F0      RJMP	0x059B
+(0177) 		 case 2 : {action_base(6);break;}
+    004AB E006      LDI	R16,6
+    004AC E010      LDI	R17,0
+    004AD DC42      RCALL	_action_base
+    004AE C0EC      RJMP	0x059B
+(0178) 		 case 3 : {action_base(5);break;}
+    004AF E005      LDI	R16,5
+    004B0 E010      LDI	R17,0
+    004B1 DC3E      RCALL	_action_base
+    004B2 C0E8      RJMP	0x059B
+(0179) 		 case 4 : {action_base(4);break;}
+    004B3 E004      LDI	R16,4
+    004B4 E010      LDI	R17,0
+    004B5 DC3A      RCALL	_action_base
+    004B6 C0E4      RJMP	0x059B
+(0180) 		 case 5 : {action_base(0);break;}
+    004B7 2700      CLR	R16
+    004B8 2711      CLR	R17
+    004B9 DC36      RCALL	_action_base
+(0181) 		};break;}
+    004BA C0E0      RJMP	0x059B
+(0182) 		case 6:
+(0183) 	{switch(action_series_step)
+    004BB 9140 0060 LDS	R20,action_series_step
+    004BD 9150 0061 LDS	R21,action_series_step+1
+    004BF 3041      CPI	R20,1
+    004C0 E0E0      LDI	R30,0
+    004C1 075E      CPC	R21,R30
+    004C2 F089      BEQ	0x04D4
+    004C3 3042      CPI	R20,2
+    004C4 E0E0      LDI	R30,0
+    004C5 075E      CPC	R21,R30
+    004C6 F089      BEQ	0x04D8
+    004C7 3043      CPI	R20,3
+    004C8 E0E0      LDI	R30,0
+    004C9 075E      CPC	R21,R30
+    004CA F089      BEQ	0x04DC
+    004CB 3044      CPI	R20,4
+    004CC E0E0      LDI	R30,0
+    004CD 075E      CPC	R21,R30
+    004CE F089      BEQ	0x04E0
+    004CF 3045      CPI	R20,5
+    004D0 E0E0      LDI	R30,0
+    004D1 075E      CPC	R21,R30
+    004D2 F089      BEQ	0x04E4
+    004D3 C0C7      RJMP	0x059B
+(0184) 		{case 1 : {action_base(0);break;}
+    004D4 2700      CLR	R16
+    004D5 2711      CLR	R17
+    004D6 DC19      RCALL	_action_base
+    004D7 C0C3      RJMP	0x059B
+(0185) 		 case 2 : {action_base(10);break;}
+    004D8 E00A      LDI	R16,0xA
+    004D9 E010      LDI	R17,0
+    004DA DC15      RCALL	_action_base
+    004DB C0BF      RJMP	0x059B
+(0186) 		 case 3 : {action_base(9);break;}
+    004DC E009      LDI	R16,0x9
+    004DD E010      LDI	R17,0
+    004DE DC11      RCALL	_action_base
+    004DF C0BB      RJMP	0x059B
+(0187) 		 case 4 : {action_base(8);break;}
+    004E0 E008      LDI	R16,0x8
+    004E1 E010      LDI	R17,0
+    004E2 DC0D      RCALL	_action_base
+    004E3 C0B7      RJMP	0x059B
+(0188) 		 case 5 : {action_base(0);break;}
+    004E4 2700      CLR	R16
+    004E5 2711      CLR	R17
+    004E6 DC09      RCALL	_action_base
+(0189) 		};break;}
+    004E7 C0B3      RJMP	0x059B
+(0190) 		case 7:
+(0191) 	{switch(action_series_step)
+    004E8 9140 0060 LDS	R20,action_series_step
+    004EA 9150 0061 LDS	R21,action_series_step+1
+    004EC 3041      CPI	R20,1
+    004ED E0E0      LDI	R30,0
+    004EE 075E      CPC	R21,R30
+    004EF F089      BEQ	0x0501
+    004F0 3042      CPI	R20,2
+    004F1 E0E0      LDI	R30,0
+    004F2 075E      CPC	R21,R30
+    004F3 F089      BEQ	0x0505
+    004F4 3043      CPI	R20,3
+    004F5 E0E0      LDI	R30,0
+    004F6 075E      CPC	R21,R30
+    004F7 F089      BEQ	0x0509
+    004F8 3044      CPI	R20,4
+    004F9 E0E0      LDI	R30,0
+    004FA 075E      CPC	R21,R30
+    004FB F089      BEQ	0x050D
+    004FC 3045      CPI	R20,5
+    004FD E0E0      LDI	R30,0
+    004FE 075E      CPC	R21,R30
+    004FF F089      BEQ	0x0511
+    00500 C09A      RJMP	0x059B
+(0192) 		{case 1 : {action_base(0);break;}
+    00501 2700      CLR	R16
+    00502 2711      CLR	R17
+    00503 DBEC      RCALL	_action_base
+    00504 C096      RJMP	0x059B
+(0193) 		 case 2 : {action_base(16);break;}
+    00505 E100      LDI	R16,0x10
+    00506 E010      LDI	R17,0
+    00507 DBE8      RCALL	_action_base
+    00508 C092      RJMP	0x059B
+(0194) 		 case 3 : {action_base(15);break;}
+    00509 E00F      LDI	R16,0xF
+    0050A E010      LDI	R17,0
+    0050B DBE4      RCALL	_action_base
+    0050C C08E      RJMP	0x059B
+(0195) 		 case 4 : {action_base(14);break;}
+    0050D E00E      LDI	R16,0xE
+    0050E E010      LDI	R17,0
+    0050F DBE0      RCALL	_action_base
+    00510 C08A      RJMP	0x059B
+(0196) 		 case 5 : {action_base(0);break;}
+    00511 2700      CLR	R16
+    00512 2711      CLR	R17
+    00513 DBDC      RCALL	_action_base
+(0197) 		};break;}
+    00514 C086      RJMP	0x059B
+(0198) 		case 8:
+(0199) 	{switch(action_series_step)
+    00515 9140 0060 LDS	R20,action_series_step
+    00517 9150 0061 LDS	R21,action_series_step+1
+    00519 3041      CPI	R20,1
+    0051A E0E0      LDI	R30,0
+    0051B 075E      CPC	R21,R30
+    0051C F089      BEQ	0x052E
+    0051D 3042      CPI	R20,2
+    0051E E0E0      LDI	R30,0
+    0051F 075E      CPC	R21,R30
+    00520 F089      BEQ	0x0532
+    00521 3043      CPI	R20,3
+    00522 E0E0      LDI	R30,0
+    00523 075E      CPC	R21,R30
+    00524 F089      BEQ	0x0536
+    00525 3044      CPI	R20,4
+    00526 E0E0      LDI	R30,0
+    00527 075E      CPC	R21,R30
+    00528 F089      BEQ	0x053A
+    00529 3045      CPI	R20,5
+    0052A E0E0      LDI	R30,0
+    0052B 075E      CPC	R21,R30
+    0052C F089      BEQ	0x053E
+    0052D C06D      RJMP	0x059B
+(0200) 		{case 1 : {action_base(0);break;}
+    0052E 2700      CLR	R16
+    0052F 2711      CLR	R17
+    00530 DBBF      RCALL	_action_base
+    00531 C069      RJMP	0x059B
+(0201) 		 case 2 : {action_base(20);break;}
+    00532 E104      LDI	R16,0x14
+    00533 E010      LDI	R17,0
+    00534 DBBB      RCALL	_action_base
+    00535 C065      RJMP	0x059B
+(0202) 		 case 3 : {action_base(19);break;}
+    00536 E103      LDI	R16,0x13
+    00537 E010      LDI	R17,0
+    00538 DBB7      RCALL	_action_base
+    00539 C061      RJMP	0x059B
+(0203) 		 case 4 : {action_base(18);break;}
+    0053A E102      LDI	R16,0x12
+    0053B E010      LDI	R17,0
+    0053C DBB3      RCALL	_action_base
+    0053D C05D      RJMP	0x059B
+(0204) 		 case 5 : {action_base(0);break;}
+    0053E 2700      CLR	R16
+    0053F 2711      CLR	R17
+    00540 DBAF      RCALL	_action_base
+(0205) 		};break;}
+    00541 C059      RJMP	0x059B
+(0206) 		case 9:
+(0207) 	{switch(action_series_step)
+    00542 9140 0060 LDS	R20,action_series_step
+    00544 9150 0061 LDS	R21,action_series_step+1
+    00546 3041      CPI	R20,1
+    00547 E0E0      LDI	R30,0
+    00548 075E      CPC	R21,R30
+    00549 F0A9      BEQ	0x055F
+    0054A 3042      CPI	R20,2
+    0054B E0E0      LDI	R30,0
+    0054C 075E      CPC	R21,R30
+    0054D F0A9      BEQ	0x0563
+    0054E 3043      CPI	R20,3
+    0054F E0E0      LDI	R30,0
+    00550 075E      CPC	R21,R30
+    00551 F0A9      BEQ	0x0567
+    00552 3044      CPI	R20,4
+    00553 E0E0      LDI	R30,0
+    00554 075E      CPC	R21,R30
+    00555 F0A9      BEQ	0x056B
+    00556 3045      CPI	R20,5
+    00557 E0E0      LDI	R30,0
+    00558 075E      CPC	R21,R30
+    00559 F0A9      BEQ	0x056F
+    0055A 3046      CPI	R20,6
+    0055B E0E0      LDI	R30,0
+    0055C 075E      CPC	R21,R30
+    0055D F0A9      BEQ	0x0573
+    0055E C03C      RJMP	0x059B
+(0208) 		{case 1 : {action_base(9);break;}
+    0055F E009      LDI	R16,0x9
+    00560 E010      LDI	R17,0
+    00561 DB8E      RCALL	_action_base
+    00562 C038      RJMP	0x059B
+(0209) 		 case 2 : {action_base(8);break;}
+    00563 E008      LDI	R16,0x8
+    00564 E010      LDI	R17,0
+    00565 DB8A      RCALL	_action_base
+    00566 C034      RJMP	0x059B
+(0210) 		 case 3 : {action_base(5);break;}
+    00567 E005      LDI	R16,5
+    00568 E010      LDI	R17,0
+    00569 DB86      RCALL	_action_base
+    0056A C030      RJMP	0x059B
+(0211) 		 case 4 : {action_base(4);break;}
+    0056B E004      LDI	R16,4
+    0056C E010      LDI	R17,0
+    0056D DB82      RCALL	_action_base
+    0056E C02C      RJMP	0x059B
+(0212) 		 case 5 : {action_base(3);break;}
+    0056F E003      LDI	R16,3
+    00570 E010      LDI	R17,0
+    00571 DB7E      RCALL	_action_base
+    00572 C028      RJMP	0x059B
+(0213) 		 case 6 : {action_base(1);break;}
+    00573 E001      LDI	R16,1
+    00574 E010      LDI	R17,0
+    00575 DB7A      RCALL	_action_base
+(0214) 		};break;} 
+    00576 C024      RJMP	0x059B
+(0215) 		 case 10:
+(0216) 	{switch(action_series_step)
+    00577 9140 0060 LDS	R20,action_series_step
+    00579 9150 0061 LDS	R21,action_series_step+1
+    0057B 3041      CPI	R20,1
+    0057C E0E0      LDI	R30,0
+    0057D 075E      CPC	R21,R30
+    0057E F069      BEQ	0x058C
+    0057F 3042      CPI	R20,2
+    00580 E0E0      LDI	R30,0
+    00581 075E      CPC	R21,R30
+    00582 F069      BEQ	0x0590
+    00583 3043      CPI	R20,3
+    00584 E0E0      LDI	R30,0
+    00585 075E      CPC	R21,R30
+    00586 F069      BEQ	0x0594
+    00587 3044      CPI	R20,4
+    00588 E0E0      LDI	R30,0
+    00589 075E      CPC	R21,R30
+    0058A F069      BEQ	0x0598
+    0058B C00F      RJMP	0x059B
+(0217) 		{case 1 : {action_base(9);break;}
+    0058C E009      LDI	R16,0x9
+    0058D E010      LDI	R17,0
+    0058E DB61      RCALL	_action_base
+    0058F C00B      RJMP	0x059B
+(0218) 		 case 2 : {action_base(8);break;}
+    00590 E008      LDI	R16,0x8
+    00591 E010      LDI	R17,0
+    00592 DB5D      RCALL	_action_base
+    00593 C007      RJMP	0x059B
+(0219) 		 case 3 : {action_base(5);break;}
+    00594 E005      LDI	R16,5
+    00595 E010      LDI	R17,0
+    00596 DB59      RCALL	_action_base
+    00597 C003      RJMP	0x059B
+(0220) 		 case 4 : {action_base(4);break;}
+    00598 E004      LDI	R16,4
+    00599 E010      LDI	R17,0
+    0059A DB55      RCALL	_action_base
+(0221) 		};break;} 
+(0222) 
+(0223) 			 }
+(0224) if(--action_series_step==0)action_series_flag=0,action_series_number=0;//如果动作完成，则动作系列标志位置0
+    0059B 9140 0060 LDS	R20,action_series_step
+    0059D 9150 0061 LDS	R21,action_series_step+1
+    0059F 5041      SUBI	R20,1
+    005A0 4050      SBCI	R21,0
+    005A1 9350 0061 STS	action_series_step+1,R21
+    005A3 9340 0060 STS	action_series_step,R20
+    005A5 3040      CPI	R20,0
+    005A6 0745      CPC	R20,R21
+    005A7 F451      BNE	0x05B2
+    005A8 2422      CLR	R2
+    005A9 2433      CLR	R3
+    005AA 9230 0065 STS	action_series_flag+1,R3
+    005AC 9220 0064 STS	action_series_flag,R2
+    005AE 9230 0063 STS	action_series_number+1,R3
+    005B0 9220 0062 STS	action_series_number,R2
+    005B2 9159      LD	R21,Y+
+    005B3 9149      LD	R20,Y+
+    005B4 9508      RET
+_action_series_set:
+  number               --> R16
+    005B5 934A      ST	-Y,R20
+    005B6 935A      ST	-Y,R21
+(0225) 
+(0226) }
+(0227) 
+(0228) /********动作系列配置************/
+(0229) void action_series_set(char number)
+(0230) {
+(0231) switch(number)
+    005B7 2F40      MOV	R20,R16
+    005B8 2755      CLR	R21
+    005B9 3041      CPI	R20,1
+    005BA E0E0      LDI	R30,0
+    005BB 075E      CPC	R21,R30
+    005BC F409      BNE	0x05BE
+    005BD C02E      RJMP	0x05EC
+    005BE 3042      CPI	R20,2
+    005BF E0E0      LDI	R30,0
+    005C0 075E      CPC	R21,R30
+    005C1 F409      BNE	0x05C3
+    005C2 C035      RJMP	0x05F8
+    005C3 3043      CPI	R20,3
+    005C4 E0E0      LDI	R30,0
+    005C5 075E      CPC	R21,R30
+    005C6 F409      BNE	0x05C8
+    005C7 C03C      RJMP	0x0604
+    005C8 3044      CPI	R20,4
+    005C9 E0E0      LDI	R30,0
+    005CA 075E      CPC	R21,R30
+    005CB F409      BNE	0x05CD
+    005CC C043      RJMP	0x0610
+    005CD 3045      CPI	R20,5
+    005CE E0E0      LDI	R30,0
+    005CF 075E      CPC	R21,R30
+    005D0 F409      BNE	0x05D2
+    005D1 C04A      RJMP	0x061C
+    005D2 3046      CPI	R20,6
+    005D3 E0E0      LDI	R30,0
+    005D4 075E      CPC	R21,R30
+    005D5 F409      BNE	0x05D7
+    005D6 C051      RJMP	0x0628
+    005D7 3047      CPI	R20,7
+    005D8 E0E0      LDI	R30,0
+    005D9 075E      CPC	R21,R30
+    005DA F409      BNE	0x05DC
+    005DB C057      RJMP	0x0633
+    005DC 3048      CPI	R20,0x8
+    005DD E0E0      LDI	R30,0
+    005DE 075E      CPC	R21,R30
+    005DF F409      BNE	0x05E1
+    005E0 C05E      RJMP	0x063F
+    005E1 3049      CPI	R20,0x9
+    005E2 E0E0      LDI	R30,0
+    005E3 075E      CPC	R21,R30
+    005E4 F409      BNE	0x05E6
+    005E5 C065      RJMP	0x064B
+    005E6 304A      CPI	R20,0xA
+    005E7 E0E0      LDI	R30,0
+    005E8 075E      CPC	R21,R30
+    005E9 F409      BNE	0x05EB
+    005EA C06C      RJMP	0x0657
+    005EB C076      RJMP	0x0662
+(0232) {case 1 : {action_series_number=1;action_series_step=11;break;}		 //启动并走一步
+    005EC E081      LDI	R24,1
+    005ED E090      LDI	R25,0
+    005EE 9390 0063 STS	action_series_number+1,R25
+    005F0 9380 0062 STS	action_series_number,R24
+    005F2 E08B      LDI	R24,0xB
+    005F3 9390 0061 STS	action_series_step+1,R25
+    005F5 9380 0060 STS	action_series_step,R24
+    005F7 C06A      RJMP	0x0662
+(0233) case 2 : {action_series_number=2;action_series_step=10;break;}		 //继续走
+    005F8 E082      LDI	R24,2
+    005F9 E090      LDI	R25,0
+    005FA 9390 0063 STS	action_series_number+1,R25
+    005FC 9380 0062 STS	action_series_number,R24
+    005FE E08A      LDI	R24,0xA
+    005FF 9390 0061 STS	action_series_step+1,R25
+    00601 9380 0060 STS	action_series_step,R24
+    00603 C05E      RJMP	0x0662
+(0234) case 3 : {action_series_number=3;action_series_step=11;break;}		 //启动并后退一步
+    00604 E083      LDI	R24,3
+    00605 E090      LDI	R25,0
+    00606 9390 0063 STS	action_series_number+1,R25
+    00608 9380 0062 STS	action_series_number,R24
+    0060A E08B      LDI	R24,0xB
+    0060B 9390 0061 STS	action_series_step+1,R25
+    0060D 9380 0060 STS	action_series_step,R24
+    0060F C052      RJMP	0x0662
+(0235) case 4 : {action_series_number=4;action_series_step=10;break;}		 //继续后退
+    00610 E084      LDI	R24,4
+    00611 E090      LDI	R25,0
+    00612 9390 0063 STS	action_series_number+1,R25
+    00614 9380 0062 STS	action_series_number,R24
+    00616 E08A      LDI	R24,0xA
+    00617 9390 0061 STS	action_series_step+1,R25
+    00619 9380 0060 STS	action_series_step,R24
+    0061B C046      RJMP	0x0662
+(0236) case 5 : {action_series_number=5;action_series_step=6;break;}		 //继续后退
+    0061C E085      LDI	R24,5
+    0061D E090      LDI	R25,0
+    0061E 9390 0063 STS	action_series_number+1,R25
+    00620 9380 0062 STS	action_series_number,R24
+    00622 E086      LDI	R24,6
+    00623 9390 0061 STS	action_series_step+1,R25
+    00625 9380 0060 STS	action_series_step,R24
+    00627 C03A      RJMP	0x0662
+(0237) case 6 : {action_series_number=6;action_series_step=6;break;}		 //继续后退
+    00628 E086      LDI	R24,6
+    00629 E090      LDI	R25,0
+    0062A 9390 0063 STS	action_series_number+1,R25
+    0062C 9380 0062 STS	action_series_number,R24
+    0062E 9390 0061 STS	action_series_step+1,R25
+    00630 9380 0060 STS	action_series_step,R24
+    00632 C02F      RJMP	0x0662
+(0238) case 7 : {action_series_number=7;action_series_step=6;break;}		 //继续后退
+    00633 E087      LDI	R24,7
+    00634 E090      LDI	R25,0
+    00635 9390 0063 STS	action_series_number+1,R25
+    00637 9380 0062 STS	action_series_number,R24
+    00639 E086      LDI	R24,6
+    0063A 9390 0061 STS	action_series_step+1,R25
+    0063C 9380 0060 STS	action_series_step,R24
+    0063E C023      RJMP	0x0662
+(0239) case 8 : {action_series_number=8;action_series_step=6;break;}		 //继续后退
+    0063F E088      LDI	R24,0x8
+    00640 E090      LDI	R25,0
+    00641 9390 0063 STS	action_series_number+1,R25
+    00643 9380 0062 STS	action_series_number,R24
+    00645 E086      LDI	R24,6
+    00646 9390 0061 STS	action_series_step+1,R25
+    00648 9380 0060 STS	action_series_step,R24
+    0064A C017      RJMP	0x0662
+(0240) case 9 : {action_series_number=9;action_series_step=6;break;}		 //继续后退
+    0064B E089      LDI	R24,0x9
+    0064C E090      LDI	R25,0
+    0064D 9390 0063 STS	action_series_number+1,R25
+    0064F 9380 0062 STS	action_series_number,R24
+    00651 E086      LDI	R24,6
+    00652 9390 0061 STS	action_series_step+1,R25
+    00654 9380 0060 STS	action_series_step,R24
+    00656 C00B      RJMP	0x0662
+(0241) case 10 : {action_series_number=10;action_series_step=4;break;}		 //继续后退
+    00657 E08A      LDI	R24,0xA
+    00658 E090      LDI	R25,0
+    00659 9390 0063 STS	action_series_number+1,R25
+    0065B 9380 0062 STS	action_series_number,R24
+    0065D E084      LDI	R24,4
+    0065E 9390 0061 STS	action_series_step+1,R25
+    00660 9380 0060 STS	action_series_step,R24
+(0242) }
+(0243) action_series_flag=1;
+    00662 E081      LDI	R24,1
+    00663 E090      LDI	R25,0
+    00664 9390 0065 STS	action_series_flag+1,R25
+    00666 9380 0064 STS	action_series_flag,R24
+    00668 9159      LD	R21,Y+
+    00669 9149      LD	R20,Y+
+    0066A 9508      RET
+(0244) }
+(0245) void main (void)
+(0246) {
+(0247)  int i,j,k;
+(0248)  int number=0;
+_main:
+  number               --> R20
+  i                    --> R22
+  j                    --> R10
+  k                    --> R12
+    0066B 2744      CLR	R20
+    0066C 2755      CLR	R21
+(0249)  DDRB|=BIT(PB7);
+    0066D 9ABF      SBI	0x17,7
+(0250)  DDRB|=BIT(PB6);
+    0066E 9ABE      SBI	0x17,6
+(0251)  DDRB|=BIT(PB5);
+    0066F 9ABD      SBI	0x17,5
+(0252)  DDRE|=BIT(PE3);
+    00670 9A13      SBI	0x02,3
+(0253)  DDRE|=BIT(PE4);
+    00671 9A14      SBI	0x02,4
+(0254)  DDRE|=BIT(PE5);
+    00672 9A15      SBI	0x02,5
+(0255) //将OCR1A管脚配置为输出
+(0256) 
+(0257) TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+    00673 B58E      IN	R24,0x2E
+    00674 618A      ORI	R24,0x1A
+    00675 BD8E      OUT	0x2E,R24
+(0258) 
+(0259) //时钟8分频
+(0260) TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //选通ABC  
+    00676 B58F      IN	R24,0x2F
+    00677 6A8A      ORI	R24,0xAA
+    00678 BD8F      OUT	0x2F,R24
+(0261) //TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0262) 
+(0263) //快速PWM模式top:ICR1
+(0264) 
+(0265) ICR1=40000;
+    00679 E480      LDI	R24,0x40
+    0067A E99C      LDI	R25,0x9C
+    0067B BD97      OUT	0x27,R25
+    0067C BD86      OUT	0x26,R24
+(0266) 
+(0267) TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+    0067D 9180 008A LDS	R24,action_series_flag+38
+    0067F 618A      ORI	R24,0x1A
+    00680 9380 008A STS	action_series_flag+38,R24
+(0268) TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //选通ABC
+    00682 9180 008B LDS	R24,action_series_flag+39
+    00684 6A8A      ORI	R24,0xAA
+    00685 9380 008B STS	action_series_flag+39,R24
+(0269) 	ICR3=40000;
+    00687 E480      LDI	R24,0x40
+    00688 9390 0081 STS	action_series_flag+29,R25
+    0068A 9380 0080 STS	action_series_flag+28,R24
+(0270) 
+(0271) 
+(0272) //周期20ms
+(0273) 
+(0274) OCR1C=3000;   //2000---3000--4000
+    0068C EB88      LDI	R24,0xB8
+    0068D E09B      LDI	R25,0xB
+    0068E 9390 0079 STS	action_series_flag+21,R25
+    00690 9380 0078 STS	action_series_flag+20,R24
+(0275) OCR1B=3000;
+    00692 BD99      OUT	0x29,R25
+    00693 BD88      OUT	0x28,R24
+(0276) OCR1A=3000;
+    00694 BD9B      OUT	0x2B,R25
+    00695 BD8A      OUT	0x2A,R24
+(0277) OCR3C=3000;
+    00696 9390 0083 STS	action_series_flag+31,R25
+    00698 9380 0082 STS	action_series_flag+30,R24
+(0278) OCR3B=3000;
+    0069A 9390 0085 STS	action_series_flag+33,R25
+    0069C 9380 0084 STS	action_series_flag+32,R24
+(0279) OCR3A=3000;
+    0069E 9390 0087 STS	action_series_flag+35,R25
+    006A0 9380 0086 STS	action_series_flag+34,R24
+(0280) 
+(0281) //正脉宽
+(0282) 
+(0283) TCNT1=0x0000;
+    006A2 2422      CLR	R2
+    006A3 2433      CLR	R3
+    006A4 BC3D      OUT	0x2D,R3
+    006A5 BC2C      OUT	0x2C,R2
+    006A6 C025      RJMP	0x06CC
+(0284) 
+(0285) /*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+(0286) TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0287) ICR1=40000;   */
+(0288) 
+(0289) 
+(0290) //清零计数器
+(0291) while(1)
+(0292) {
+(0293) for(i=0;i<1000;i++){
+    006A7 2766      CLR	R22
+    006A8 2777      CLR	R23
+(0294)     for(j=0;j<1000;j++){
+    006A9 24AA      CLR	R10
+    006AA 24BB      CLR	R11
+(0295)        for(k=0;k<8;k++){   //k<10,约三秒  
+    006AB 24CC      CLR	R12
+    006AC 24DD      CLR	R13
+    006AD 01C6      MOVW	R24,R12
+    006AE 9601      ADIW	R24,1
+    006AF 016C      MOVW	R12,R24
+    006B0 3088      CPI	R24,0x8
+    006B1 E0E0      LDI	R30,0
+    006B2 079E      CPC	R25,R30
+    006B3 F3CC      BLT	0x06AD
+    006B4 01C5      MOVW	R24,R10
+    006B5 9601      ADIW	R24,1
+    006B6 015C      MOVW	R10,R24
+    006B7 3E88      CPI	R24,0xE8
+    006B8 E0E3      LDI	R30,3
+    006B9 079E      CPC	R25,R30
+    006BA F384      BLT	0x06AB
+    006BB 5F6F      SUBI	R22,0xFF
+    006BC 4F7F      SBCI	R23,0xFF
+    006BD 3E68      CPI	R22,0xE8
+    006BE E0E3      LDI	R30,3
+    006BF 077E      CPC	R23,R30
+    006C0 F344      BLT	0x06A9
+(0296)          ; 
+(0297) 		 }
+(0298)     }
+(0299) }
+(0300)    number=number+1;
+    006C1 5F4F      SUBI	R20,0xFF
+    006C2 4F5F      SBCI	R21,0xFF
+(0301)    if(number>20){
+    006C3 E184      LDI	R24,0x14
+    006C4 E090      LDI	R25,0
+    006C5 1784      CP	R24,R20
+    006C6 0795      CPC	R25,R21
+    006C7 F414      BGE	0x06CA
+(0302)    number=0;
+    006C8 2744      CLR	R20
+    006C9 2755      CLR	R21
+(0303)    }
+(0304)    
+(0305) action_base(number);
+FILE: <library>
+    006CA 018A      MOVW	R16,R20
+    006CB DA24      RCALL	_action_base
+    006CC CFDA      RJMP	0x06A7
+    006CD 9508      RET
+push_arg4:
+    006CE 933A      ST	-Y,R19
+    006CF 932A      ST	-Y,R18
+push_arg2:
+    006D0 931A      ST	-Y,R17
+    006D1 930A      ST	-Y,R16
+    006D2 9508      RET
+push_xgsetF000:
+    006D3 937A      ST	-Y,R23
+    006D4 936A      ST	-Y,R22
+    006D5 935A      ST	-Y,R21
+    006D6 934A      ST	-Y,R20
+    006D7 9508      RET
+pop_xgsetF000:
+    006D8 9149      LD	R20,Y+
+    006D9 9159      LD	R21,Y+
+    006DA 9169      LD	R22,Y+
+    006DB 9179      LD	R23,Y+
+    006DC 9508      RET
+push_xgsetF03C:
+    006DD 937A      ST	-Y,R23
+    006DE 936A      ST	-Y,R22
+    006DF 935A      ST	-Y,R21
+    006E0 934A      ST	-Y,R20
+    006E1 92DA      ST	-Y,R13
+    006E2 92CA      ST	-Y,R12
+    006E3 92BA      ST	-Y,R11
+    006E4 92AA      ST	-Y,R10
+    006E5 9508      RET
+pop_xgsetF03C:
+    006E6 90A9      LD	R10,Y+
+    006E7 90B9      LD	R11,Y+
+    006E8 90C9      LD	R12,Y+
+    006E9 90D9      LD	R13,Y+
+    006EA 9149      LD	R20,Y+
+    006EB 9159      LD	R21,Y+
+    006EC 9169      LD	R22,Y+
+    006ED 9179      LD	R23,Y+
+    006EE 9508      RET

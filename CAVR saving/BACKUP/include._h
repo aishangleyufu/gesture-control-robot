@@ -1,0 +1,8 @@
+#ifndef _INCLUDE_H
+#define _INCLUDE_H
+#include"scr.h"
+#include"init.h"
+#include"uart.h"
+#include"other.h"
+#include"action.h"
+#endif

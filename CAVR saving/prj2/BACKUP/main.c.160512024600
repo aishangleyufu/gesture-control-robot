@@ -1,0 +1,55 @@
+
+#include <iom128v.h> 
+#include <macros.h> 
+
+//端口初始化 
+void delay_1ms(void)//1ms延时函数 
+{ 
+  unsigned int i; 
+  for (i=0;i<150*8;i++)//因为是8M晶振，所以这里乘8，这个延时不够精准 
+  { 
+  }  
+}    
+
+void delay_nms(unsigned int n)//延时n毫秒 
+{ 
+  unsigned int i; 
+  for (i=0;i<n;i++)//执行n次1毫秒延时 
+  delay_1ms();  
+} 
+void io_init(void) 
+{ 
+//PORTB = 0x00; 
+DDRB = 0xff; //PB5、PB6为输出 
+} 
+
+ 
+void time1_init (void) 
+{ 
+TCCR1A = 0xA0; //两路PWM相位频率可调，计数上限ICR1  
+               //COM1A1 COM1A0 COM1B1 COM1B0 ：1010   
+TCCR1B = 0x12; //预分频8 
+ICR1=10000; 
+//ICR1L=0x38; 
+} 
+
+//主函数 
+void main(void) 
+{ 
+io_init(); //端口初始化 
+time1_init(); //定时器1初始化 
+
+OCR1A = 600; //改变此值可改变高电平脉宽 约为1ms 
+
+OCR1B = 900; //改变此值可改变OC1B脉宽 约为2ms 
+
+while(1) 
+ { 
+   delay_nms(1000); 
+   OCR1B = 600;             //500对应1ms脉宽 1000对应2ms脉宽 
+   delay_nms(1000); 
+   OCR1B = 900; 
+   
+ } 
+} 
+

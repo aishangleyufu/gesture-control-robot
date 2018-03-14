@@ -1,0 +1,1375 @@
+                        .module main3.c
+                        .area text(rom, con, rel)
+ 0000                   .dbfile ..\..\CAVRSA~1\try\main3.c
+                        .area data(ram, con, rel)
+ 0000                   .dbfile ..\..\CAVRSA~1\try\main3.c
+ 0000           _flag::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 0000              .word 0
+                        .area data(ram, con, rel)
+ 0002                   .dbfile ..\..\CAVRSA~1\try\main3.c
+ 0002                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0002                   .dbsym e flag _flag I
+ 0002           _tempflag1::
+ 0002                   .blkb 2
+                        .area idata
+ 0002 0000              .word 0
+                        .area data(ram, con, rel)
+ 0004                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0004                   .dbsym e tempflag1 _tempflag1 I
+ 0004           _tempflag2::
+ 0004                   .blkb 2
+                        .area idata
+ 0004 0000              .word 0
+                        .area data(ram, con, rel)
+ 0006                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0006                   .dbsym e tempflag2 _tempflag2 I
+                        .area text(rom, con, rel)
+ 0000                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0000                   .dbfunc e delay _delay fV
+ 0000           ;           time -> R16,R17
+                        .even
+ 0000           _delay::
+ 0000                   .dbline -1
+ 0000                   .dbline 24
+ 0000           ; /*======
+ 0000           ; 使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+ 0000           ; 在快速PWM的模式下，top=0x03ff=1023
+ 0000           ; OCRnX在top时刻更新
+ 0000           ; 频率=8000000/8/1023=977.5HZ
+ 0000           ; =======================================================*/
+ 0000           ; #include<iom128v.h>
+ 0000           ; #include<string.h> 
+ 0000           ; #include <macros.h> 
+ 0000           ; #define fosc 16000000  //晶振16MHZ
+ 0000           ; #define baud 38400  //波特率
+ 0000           ; #define    m1 OCR1A 
+ 0000           ; #define     m2 OCR1B  
+ 0000           ; #define     m3 OCR1C  
+ 0000           ; #define      m4OCR3A   
+ 0000           ; #define     m5 OCR3B  
+ 0000           ; #define       m6 OCR3C 
+ 0000           ; int flag=0;
+ 0000           ; int tempflag1=0;
+ 0000           ; int tempflag2=0;
+ 0000           ; int i,j,k;
+ 0000           ; 
+ 0000           ; void delay(int time)
+ 0000           ; {
+ 0000                   .dbline 26
+ 0000           ;                
+ 0000           ;                       for(i=0;i<1000;i++)
+ 0000 2224              clr R2
+ 0002 3324              clr R3
+ 0004 30920500          sts _i+1,R3
+ 0008 20920400          sts _i,R2
+ 000C           L2:
+ 000C                   .dbline 27
+ 000C           ;                               {for(j=0;j<1000;j++)
+ 000C                   .dbline 27
+ 000C 2224              clr R2
+ 000E 3324              clr R3
+ 0010 30920300          sts _j+1,R3
+ 0014 20920200          sts _j,R2
+ 0018           L6:
+ 0018                   .dbline 28
+ 0018           ;                          {for(k=0;k<time;k++)   //k<10,约三秒  
+ 0018                   .dbline 28
+ 0018 2224              clr R2
+ 001A 3324              clr R3
+ 001C 30920100          sts _k+1,R3
+ 0020 20920000          sts _k,R2
+ 0024 09C0              xjmp L13
+ 0026           L10:
+ 0026                   .dbline 29
+ 0026           ;                                       ; 
+ 0026           L11:
+ 0026                   .dbline 28
+ 0026 80910000          lds R24,_k
+ 002A 90910100          lds R25,_k+1
+ 002E 0196              adiw R24,1
+ 0030 90930100          sts _k+1,R25
+ 0034 80930000          sts _k,R24
+ 0038           L13:
+ 0038                   .dbline 28
+ 0038 20900000          lds R2,_k
+ 003C 30900100          lds R3,_k+1
+ 0040 2016              cp R2,R16
+ 0042 3106              cpc R3,R17
+ 0044 84F3              brlt L10
+ 0046           X0:
+ 0046                   .dbline 30
+ 0046           ;                        }
+ 0046           L7:
+ 0046                   .dbline 27
+ 0046 80910200          lds R24,_j
+ 004A 90910300          lds R25,_j+1
+ 004E 0196              adiw R24,1
+ 0050 90930300          sts _j+1,R25
+ 0054 80930200          sts _j,R24
+ 0058                   .dbline 27
+ 0058 883E              cpi R24,232
+ 005A E3E0              ldi R30,3
+ 005C 9E07              cpc R25,R30
+ 005E E4F2              brlt L6
+ 0060           X1:
+ 0060                   .dbline 31
+ 0060           ;                       }
+ 0060           L3:
+ 0060                   .dbline 26
+ 0060 80910400          lds R24,_i
+ 0064 90910500          lds R25,_i+1
+ 0068 0196              adiw R24,1
+ 006A 90930500          sts _i+1,R25
+ 006E 80930400          sts _i,R24
+ 0072                   .dbline 26
+ 0072 883E              cpi R24,232
+ 0074 E3E0              ldi R30,3
+ 0076 9E07              cpc R25,R30
+ 0078 4CF2              brlt L2
+ 007A           X2:
+ 007A                   .dbline -2
+ 007A           L1:
+ 007A                   .dbline 0 ; func end
+ 007A 0895              ret
+ 007C                   .dbsym r time 16 I
+ 007C                   .dbend
+ 007C                   .dbfunc e PWM_init _PWM_init fV
+                        .even
+ 007C           _PWM_init::
+ 007C                   .dbline -1
+ 007C                   .dbline 35
+ 007C           ; }
+ 007C           ; 
+ 007C           ; void PWM_init()
+ 007C           ; {
+ 007C                   .dbline 36
+ 007C           ;    DDRB|=0XE0;
+ 007C 87B3              in R24,0x17
+ 007E 806E              ori R24,224
+ 0080 87BB              out 0x17,R24
+ 0082                   .dbline 37
+ 0082           ;    DDRE|=0X38;
+ 0082 82B1              in R24,0x2
+ 0084 8863              ori R24,56
+ 0086 82B9              out 0x2,R24
+ 0088                   .dbline 38
+ 0088           ; TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+ 0088 8EB5              in R24,0x2e
+ 008A 8A61              ori R24,26
+ 008C 8EBD              out 0x2e,R24
+ 008E                   .dbline 39
+ 008E           ; TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //选通ABC                 
+ 008E 8FB5              in R24,0x2f
+ 0090 8A6A              ori R24,170
+ 0092 8FBD              out 0x2f,R24
+ 0094                   .dbline 40
+ 0094           ;       ICR1=40000;
+ 0094 80E4              ldi R24,40000
+ 0096 9CE9              ldi R25,156
+ 0098 97BD              out 0x27,R25
+ 009A 86BD              out 0x26,R24
+ 009C                   .dbline 41
+ 009C           ; TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+ 009C 80918A00          lds R24,138
+ 00A0 8A61              ori R24,26
+ 00A2 80938A00          sts 138,R24
+ 00A6                   .dbline 42
+ 00A6           ; TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //选通ABC
+ 00A6 80918B00          lds R24,139
+ 00AA 8A6A              ori R24,170
+ 00AC 80938B00          sts 139,R24
+ 00B0                   .dbline 43
+ 00B0           ;       ICR3=40000;
+ 00B0 80E4              ldi R24,64
+ 00B2 90938100          sts 128+1,R25
+ 00B6 80938000          sts 128,R24
+ 00BA                   .dbline 44
+ 00BA           ;       OCR1A=3000;
+ 00BA 88EB              ldi R24,3000
+ 00BC 9BE0              ldi R25,11
+ 00BE 9BBD              out 0x2b,R25
+ 00C0 8ABD              out 0x2a,R24
+ 00C2                   .dbline 45
+ 00C2           ;       OCR1B=3000;
+ 00C2 99BD              out 0x29,R25
+ 00C4 88BD              out 0x28,R24
+ 00C6                   .dbline 46
+ 00C6           ;       OCR1C=3000;
+ 00C6 90937900          sts 120+1,R25
+ 00CA 80937800          sts 120,R24
+ 00CE                   .dbline 47
+ 00CE           ;       OCR3A=3000;
+ 00CE 90938700          sts 134+1,R25
+ 00D2 80938600          sts 134,R24
+ 00D6                   .dbline 48
+ 00D6           ;       OCR3B=3000;
+ 00D6 90938500          sts 132+1,R25
+ 00DA 80938400          sts 132,R24
+ 00DE                   .dbline 49
+ 00DE           ;       OCR3C=3000;
+ 00DE 90938300          sts 130+1,R25
+ 00E2 80938200          sts 130,R24
+ 00E6                   .dbline -2
+ 00E6           L14:
+ 00E6                   .dbline 0 ; func end
+ 00E6 0895              ret
+ 00E8                   .dbend
+ 00E8                   .dbfunc e action_set _action_set fV
+ 00E8           ; action_do_last -> <dead>
+ 00E8           ;          ch_3c -> R20,R21
+ 00E8           ;          ch_3b -> R22,R23
+ 00E8           ;          ch_3a -> R10,R11
+ 00E8           ;          ch_1c -> R12,R13
+ 00E8           ;          ch_1b -> R18,R19
+ 00E8           ;          ch_1a -> R16,R17
+                        .even
+ 00E8           _action_set::
+ 00E8 0E940000          xcall push_xgsetF03C
+ 00EC C884              ldd R12,y+8
+ 00EE D984              ldd R13,y+9
+ 00F0 AA84              ldd R10,y+10
+ 00F2 BB84              ldd R11,y+11
+ 00F4 6C85              ldd R22,y+12
+ 00F6 7D85              ldd R23,y+13
+ 00F8 4E85              ldd R20,y+14
+ 00FA 5F85              ldd R21,y+15
+ 00FC                   .dbline -1
+ 00FC                   .dbline 53
+ 00FC           ; }
+ 00FC           ; 
+ 00FC           ; void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+ 00FC           ; {
+ 00FC                   .dbline 54
+ 00FC           ;     OCR1A=ch_1a+3000;
+ 00FC C801              movw R24,R16
+ 00FE 8854              subi R24,72  ; offset = 3000
+ 0100 944F              sbci R25,244
+ 0102 9BBD              out 0x2b,R25
+ 0104 8ABD              out 0x2a,R24
+ 0106                   .dbline 55
+ 0106           ;       OCR1B=ch_1b+3000;
+ 0106 C901              movw R24,R18
+ 0108 8854              subi R24,72  ; offset = 3000
+ 010A 944F              sbci R25,244
+ 010C 99BD              out 0x29,R25
+ 010E 88BD              out 0x28,R24
+ 0110                   .dbline 56
+ 0110           ;       OCR1C=ch_1c+3000;
+ 0110 C601              movw R24,R12
+ 0112 8854              subi R24,72  ; offset = 3000
+ 0114 944F              sbci R25,244
+ 0116 90937900          sts 120+1,R25
+ 011A 80937800          sts 120,R24
+ 011E                   .dbline 57
+ 011E           ;       OCR3A=ch_3a+3000;
+ 011E C501              movw R24,R10
+ 0120 8854              subi R24,72  ; offset = 3000
+ 0122 944F              sbci R25,244
+ 0124 90938700          sts 134+1,R25
+ 0128 80938600          sts 134,R24
+ 012C                   .dbline 58
+ 012C           ;       OCR3B=ch_3b+3000;
+ 012C CB01              movw R24,R22
+ 012E 8854              subi R24,72  ; offset = 3000
+ 0130 944F              sbci R25,244
+ 0132 90938500          sts 132+1,R25
+ 0136 80938400          sts 132,R24
+ 013A                   .dbline 59
+ 013A           ;       OCR3C=ch_3c+3000;
+ 013A CA01              movw R24,R20
+ 013C 8854              subi R24,72  ; offset = 3000
+ 013E 944F              sbci R25,244
+ 0140 90938300          sts 130+1,R25
+ 0144 80938200          sts 130,R24
+ 0148                   .dbline -2
+ 0148           L15:
+ 0148                   .dbline 0 ; func end
+ 0148 0C940000          xjmp pop_xgsetF03C
+ 014C                   .dbsym l action_do_last 16 I
+ 014C                   .dbsym r ch_3c 20 I
+ 014C                   .dbsym r ch_3b 22 I
+ 014C                   .dbsym r ch_3a 10 I
+ 014C                   .dbsym r ch_1c 12 I
+ 014C                   .dbsym r ch_1b 18 I
+ 014C                   .dbsym r ch_1a 16 I
+ 014C                   .dbend
+ 014C                   .dbfunc e action_base _action_base fV
+                        .area  func_lit(rom, con, rel)
+ 0000           L40:
+ 0000 C000              .word `L19
+ 0002 D400              .word `L20
+ 0004 EC00              .word `L21
+ 0006 0401              .word `L22
+ 0008 1C01              .word `L23
+ 000A 3501              .word `L24
+ 000C 4B01              .word `L25
+ 000E 6101              .word `L26
+ 0010 7701              .word `L27
+ 0012 8F01              .word `L28
+ 0014 A701              .word `L29
+ 0016 BE01              .word `L30
+ 0018 D801              .word `L31
+ 001A F001              .word `L32
+ 001C 0902              .word `L33
+ 001E 1E02              .word `L34
+ 0020 3302              .word `L35
+ 0022 4802              .word `L36
+ 0024 5E02              .word `L37
+ 0026 7502              .word `L38
+ 0028 8C02              .word `L39
+                        .area text(rom, con, rel)
+                ;         number -> R20,R21
+                        .even
+ 014C           _action_base::
+ 014C 4A93              st -y,R20
+ 014E 5A93              st -y,R21
+ 0150 A801              movw R20,R16
+ 0152 2A97              sbiw R28,10
+ 0154                   .dbline -1
+ 0154                   .dbline 63
+ 0154           ; }
+ 0154           ; 
+ 0154           ; void action_base(int number)
+ 0154           ; { switch(number)
+ 0154                   .dbline 63
+ 0154 4030              cpi R20,0
+ 0156 E0E0              ldi R30,0
+ 0158 5E07              cpc R21,R30
+ 015A 0CF4              brge X6
+ 015C F2C1              xjmp L17
+ 015E           X6:
+ 015E           X3:
+ 015E 84E1              ldi R24,20
+ 0160 90E0              ldi R25,0
+ 0162 8417              cp R24,R20
+ 0164 9507              cpc R25,R21
+ 0166 0CF4              brge X7
+ 0168 ECC1              xjmp L17
+ 016A           X7:
+ 016A           X4:
+ 016A 80E0              ldi R24,<L40
+ 016C 90E0              ldi R25,>L40
+ 016E FA01              movw R30,R20
+ 0170 EE0F              lsl R30
+ 0172 FF1F              rol R31
+ 0174 E80F              add R30,R24
+ 0176 F91F              adc R31,R25
+ 0178 2790              elpm R2,Z+
+ 017A 3690              elpm R3,Z
+ 017C F101              movw R30,R2
+ 017E 0994               ijmp
+ 0180           X5:
+ 0180                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0180                   .dbline 64
+ 0180           ; {
+ 0180           L19:
+ 0180                   .dbline 65
+ 0180           ; case 0:{action_set(0,0,0,0,0,0,100);break;} //直立
+ 0180                   .dbline 65
+ 0180 84E6              ldi R24,100
+ 0182 90E0              ldi R25,0
+ 0184 9987              std y+9,R25
+ 0186 8887              std y+8,R24
+ 0188 2224              clr R2
+ 018A 3324              clr R3
+ 018C 3F82              std y+7,R3
+ 018E 2E82              std y+6,R2
+ 0190 3D82              std y+5,R3
+ 0192 2C82              std y+4,R2
+ 0194 3B82              std y+3,R3
+ 0196 2A82              std y+2,R2
+ 0198 3982              std y+1,R3
+ 019A 2882              std y+0,R2
+ 019C 2227              clr R18
+ 019E 3327              clr R19
+ 01A0 0027              clr R16
+ 01A2 1127              clr R17
+ 01A4 A1DF              xcall _action_set
+ 01A6                   .dbline 65
+ 01A6 CDC1              xjmp L18
+ 01A8           L20:
+ 01A8                   .dbline 67
+ 01A8           ; //case 1:{action_set(0,0,-200,700,0,0,50);break;} //右脚左倾                                                                                     #####
+ 01A8           ; case 1:{action_set(0,0,-750,1200,0,0,40);break;} //左脚左倾                           -300/-400                                               #####
+ 01A8                   .dbline 67
+ 01A8 88E2              ldi R24,40
+ 01AA 90E0              ldi R25,0
+ 01AC 9987              std y+9,R25
+ 01AE 8887              std y+8,R24
+ 01B0 2224              clr R2
+ 01B2 3324              clr R3
+ 01B4 3F82              std y+7,R3
+ 01B6 2E82              std y+6,R2
+ 01B8 3D82              std y+5,R3
+ 01BA 2C82              std y+4,R2
+ 01BC 80EB              ldi R24,1200
+ 01BE 94E0              ldi R25,4
+ 01C0 9B83              std y+3,R25
+ 01C2 8A83              std y+2,R24
+ 01C4 82E1              ldi R24,-750
+ 01C6 9DEF              ldi R25,-3
+ 01C8 9983              std y+1,R25
+ 01CA 8883              std y+0,R24
+ 01CC 2227              clr R18
+ 01CE 3327              clr R19
+ 01D0 0027              clr R16
+ 01D2 1127              clr R17
+ 01D4 89DF              xcall _action_set
+ 01D6                   .dbline 67
+ 01D6 B5C1              xjmp L18
+ 01D8           L21:
+ 01D8                   .dbline 68
+ 01D8           ; case 2:{action_set(0,0,-600,0,1200,1200,100);break;} //右抬脚，同时右脚放平                                                    #####
+ 01D8                   .dbline 68
+ 01D8 84E6              ldi R24,100
+ 01DA 90E0              ldi R25,0
+ 01DC 9987              std y+9,R25
+ 01DE 8887              std y+8,R24
+ 01E0 80EB              ldi R24,1200
+ 01E2 94E0              ldi R25,4
+ 01E4 9F83              std y+7,R25
+ 01E6 8E83              std y+6,R24
+ 01E8 9D83              std y+5,R25
+ 01EA 8C83              std y+4,R24
+ 01EC 2224              clr R2
+ 01EE 3324              clr R3
+ 01F0 3B82              std y+3,R3
+ 01F2 2A82              std y+2,R2
+ 01F4 88EA              ldi R24,-600
+ 01F6 9DEF              ldi R25,-3
+ 01F8 9983              std y+1,R25
+ 01FA 8883              std y+0,R24
+ 01FC 2227              clr R18
+ 01FE 3327              clr R19
+ 0200 0027              clr R16
+ 0202 1127              clr R17
+ 0204 71DF              xcall _action_set
+ 0206                   .dbline 68
+ 0206 9DC1              xjmp L18
+ 0208           L22:
+ 0208                   .dbline 71
+ 0208           ; //case 4:{action_set(700,700,-350,-400,700,700,50);break;} //左弯脚 3,4可以一起完成
+ 0208           ; //case 5:{action_set(700,700,0,0,700,700,50);break;} //转正   
+ 0208           ; case 3:{action_set(300,600,0,0,600,900,75);break;} //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上#####
+ 0208                   .dbline 71
+ 0208 8BE4              ldi R24,75
+ 020A 90E0              ldi R25,0
+ 020C 9987              std y+9,R25
+ 020E 8887              std y+8,R24
+ 0210 84E8              ldi R24,900
+ 0212 93E0              ldi R25,3
+ 0214 9F83              std y+7,R25
+ 0216 8E83              std y+6,R24
+ 0218 88E5              ldi R24,600
+ 021A 92E0              ldi R25,2
+ 021C 9D83              std y+5,R25
+ 021E 8C83              std y+4,R24
+ 0220 2224              clr R2
+ 0222 3324              clr R3
+ 0224 3B82              std y+3,R3
+ 0226 2A82              std y+2,R2
+ 0228 3982              std y+1,R3
+ 022A 2882              std y+0,R2
+ 022C 28E5              ldi R18,600
+ 022E 32E0              ldi R19,2
+ 0230 0CE2              ldi R16,300
+ 0232 11E0              ldi R17,1
+ 0234 59DF              xcall _action_set
+ 0236                   .dbline 71
+ 0236 85C1              xjmp L18
+ 0238           L23:
+ 0238                   .dbline 72
+ 0238           ; case 4:{action_set(300,600,450,350,600,900,50);break;} //左脚右倾             前倾                                                              #####
+ 0238                   .dbline 72
+ 0238 82E3              ldi R24,50
+ 023A 90E0              ldi R25,0
+ 023C 9987              std y+9,R25
+ 023E 8887              std y+8,R24
+ 0240 84E8              ldi R24,900
+ 0242 93E0              ldi R25,3
+ 0244 9F83              std y+7,R25
+ 0246 8E83              std y+6,R24
+ 0248 88E5              ldi R24,600
+ 024A 92E0              ldi R25,2
+ 024C 9D83              std y+5,R25
+ 024E 8C83              std y+4,R24
+ 0250 8EE5              ldi R24,350
+ 0252 91E0              ldi R25,1
+ 0254 9B83              std y+3,R25
+ 0256 8A83              std y+2,R24
+ 0258 82EC              ldi R24,194
+ 025A 9983              std y+1,R25
+ 025C 8883              std y+0,R24
+ 025E 28E5              ldi R18,600
+ 0260 32E0              ldi R19,2
+ 0262 0CE2              ldi R16,300
+ 0264 11E0              ldi R17,1
+ 0266 40DF              xcall _action_set
+ 0268                   .dbline 72
+ 0268 6CC1              xjmp L18
+ 026A           L24:
+ 026A                   .dbline 74
+ 026A           ; //case 8:{action_set(400,700,-750,300,700,1000,50);break;} //右脚右倾，度数还得减小    
+ 026A           ; case 5:{action_set(300,600,0,300,0,300,50);break;} //右脚立正  ，前倾
+ 026A                   .dbline 74
+ 026A 82E3              ldi R24,50
+ 026C 90E0              ldi R25,0
+ 026E 9987              std y+9,R25
+ 0270 8887              std y+8,R24
+ 0272 8CE2              ldi R24,300
+ 0274 91E0              ldi R25,1
+ 0276 9F83              std y+7,R25
+ 0278 8E83              std y+6,R24
+ 027A 2224              clr R2
+ 027C 3324              clr R3
+ 027E 3D82              std y+5,R3
+ 0280 2C82              std y+4,R2
+ 0282 9B83              std y+3,R25
+ 0284 8A83              std y+2,R24
+ 0286 3982              std y+1,R3
+ 0288 2882              std y+0,R2
+ 028A 28E5              ldi R18,600
+ 028C 32E0              ldi R19,2
+ 028E 0CE2              ldi R16,300
+ 0290 11E0              ldi R17,1
+ 0292 2ADF              xcall _action_set
+ 0294                   .dbline 74
+ 0294 56C1              xjmp L18
+ 0296           L25:
+ 0296                   .dbline 75
+ 0296           ; case 6:{action_set(0,0,0,300,0,0,25);break;} //左脚回正               同时，左脚放平，取消前倾                           #####
+ 0296                   .dbline 75
+ 0296 89E1              ldi R24,25
+ 0298 90E0              ldi R25,0
+ 029A 9987              std y+9,R25
+ 029C 8887              std y+8,R24
+ 029E 2224              clr R2
+ 02A0 3324              clr R3
+ 02A2 3F82              std y+7,R3
+ 02A4 2E82              std y+6,R2
+ 02A6 3D82              std y+5,R3
+ 02A8 2C82              std y+4,R2
+ 02AA 8CE2              ldi R24,300
+ 02AC 91E0              ldi R25,1
+ 02AE 9B83              std y+3,R25
+ 02B0 8A83              std y+2,R24
+ 02B2 3982              std y+1,R3
+ 02B4 2882              std y+0,R2
+ 02B6 2227              clr R18
+ 02B8 3327              clr R19
+ 02BA 0027              clr R16
+ 02BC 1127              clr R17
+ 02BE 14DF              xcall _action_set
+ 02C0                   .dbline 75
+ 02C0 40C1              xjmp L18
+ 02C2           L26:
+ 02C2                   .dbline 76
+ 02C2           ; case 7:{action_set(-600,-600,0,300,0,0,25);break;} //左抬脚                                                                              #####
+ 02C2                   .dbline 76
+ 02C2 89E1              ldi R24,25
+ 02C4 90E0              ldi R25,0
+ 02C6 9987              std y+9,R25
+ 02C8 8887              std y+8,R24
+ 02CA 2224              clr R2
+ 02CC 3324              clr R3
+ 02CE 3F82              std y+7,R3
+ 02D0 2E82              std y+6,R2
+ 02D2 3D82              std y+5,R3
+ 02D4 2C82              std y+4,R2
+ 02D6 8CE2              ldi R24,300
+ 02D8 91E0              ldi R25,1
+ 02DA 9B83              std y+3,R25
+ 02DC 8A83              std y+2,R24
+ 02DE 3982              std y+1,R3
+ 02E0 2882              std y+0,R2
+ 02E2 28EA              ldi R18,-600
+ 02E4 3DEF              ldi R19,-3
+ 02E6 08EA              ldi R16,-600
+ 02E8 1DEF              ldi R17,-3
+ 02EA FEDE              xcall _action_set
+ 02EC                   .dbline 76
+ 02EC 2AC1              xjmp L18
+ 02EE           L27:
+ 02EE                   .dbline 79
+ 02EE           ; //case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //右弯脚        11,12可以一起完成 ，前脚未着地
+ 02EE           ; //case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //右转正 
+ 02EE           ; case 8:{action_set(-600,-400,0,0,-400,-600,75);break;} //前倾，1号舵机-500，6号舵机+500，把重心转移到前脚上，左脚稍弯##### 
+ 02EE                   .dbline 79
+ 02EE 8BE4              ldi R24,75
+ 02F0 90E0              ldi R25,0
+ 02F2 9987              std y+9,R25
+ 02F4 8887              std y+8,R24
+ 02F6 88EA              ldi R24,-600
+ 02F8 9DEF              ldi R25,-3
+ 02FA 9F83              std y+7,R25
+ 02FC 8E83              std y+6,R24
+ 02FE 80E7              ldi R24,-400
+ 0300 9EEF              ldi R25,-2
+ 0302 9D83              std y+5,R25
+ 0304 8C83              std y+4,R24
+ 0306 2224              clr R2
+ 0308 3324              clr R3
+ 030A 3B82              std y+3,R3
+ 030C 2A82              std y+2,R2
+ 030E 3982              std y+1,R3
+ 0310 2882              std y+0,R2
+ 0312 20E7              ldi R18,-400
+ 0314 3EEF              ldi R19,-2
+ 0316 08EA              ldi R16,-600
+ 0318 1DEF              ldi R17,-3
+ 031A E6DE              xcall _action_set
+ 031C                   .dbline 79
+ 031C 12C1              xjmp L18
+ 031E           L28:
+ 031E                   .dbline 80
+ 031E           ; case 9:{action_set(-600,-400,-350,-450,-400,-600,50);break;} //右脚左倾       前倾                                                            #####
+ 031E                   .dbline 80
+ 031E 82E3              ldi R24,50
+ 0320 90E0              ldi R25,0
+ 0322 9987              std y+9,R25
+ 0324 8887              std y+8,R24
+ 0326 88EA              ldi R24,-600
+ 0328 9DEF              ldi R25,-3
+ 032A 9F83              std y+7,R25
+ 032C 8E83              std y+6,R24
+ 032E 80E7              ldi R24,-400
+ 0330 9EEF              ldi R25,-2
+ 0332 9D83              std y+5,R25
+ 0334 8C83              std y+4,R24
+ 0336 8EE3              ldi R24,62
+ 0338 9B83              std y+3,R25
+ 033A 8A83              std y+2,R24
+ 033C 82EA              ldi R24,162
+ 033E 9983              std y+1,R25
+ 0340 8883              std y+0,R24
+ 0342 20E7              ldi R18,-400
+ 0344 3EEF              ldi R19,-2
+ 0346 08EA              ldi R16,-600
+ 0348 1DEF              ldi R17,-3
+ 034A CEDE              xcall _action_set
+ 034C                   .dbline 80
+ 034C FAC0              xjmp L18
+ 034E           L29:
+ 034E                   .dbline 82
+ 034E           ; //case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //左脚左倾   
+ 034E           ; case 10:{action_set(0,0,-300,-450,-600,-600,50);break;} //左立正，前倾
+ 034E                   .dbline 82
+ 034E 82E3              ldi R24,50
+ 0350 90E0              ldi R25,0
+ 0352 9987              std y+9,R25
+ 0354 8887              std y+8,R24
+ 0356 88EA              ldi R24,-600
+ 0358 9DEF              ldi R25,-3
+ 035A 9F83              std y+7,R25
+ 035C 8E83              std y+6,R24
+ 035E 9D83              std y+5,R25
+ 0360 8C83              std y+4,R24
+ 0362 8EE3              ldi R24,-450
+ 0364 9EEF              ldi R25,-2
+ 0366 9B83              std y+3,R25
+ 0368 8A83              std y+2,R24
+ 036A 84ED              ldi R24,212
+ 036C 9983              std y+1,R25
+ 036E 8883              std y+0,R24
+ 0370 2227              clr R18
+ 0372 3327              clr R19
+ 0374 0027              clr R16
+ 0376 1127              clr R17
+ 0378 B7DE              xcall _action_set
+ 037A                   .dbline 82
+ 037A E3C0              xjmp L18
+ 037C           L30:
+ 037C                   .dbline 85
+ 037C           ; //case 10:{action_set(0,0,-300,0,0,0,75);break;} //右回正，取消前倾可以回到3，右抬脚，或者回到0                 #####
+ 037C           ; 
+ 037C           ; case 11:{action_set(0,0,-300,0,-600,-800,50);break;} //右后抬脚，同时右脚放平                                                  #####
+ 037C                   .dbline 85
+ 037C 82E3              ldi R24,50
+ 037E 90E0              ldi R25,0
+ 0380 9987              std y+9,R25
+ 0382 8887              std y+8,R24
+ 0384 80EE              ldi R24,-800
+ 0386 9CEF              ldi R25,-4
+ 0388 9F83              std y+7,R25
+ 038A 8E83              std y+6,R24
+ 038C 88EA              ldi R24,-600
+ 038E 9DEF              ldi R25,-3
+ 0390 9D83              std y+5,R25
+ 0392 8C83              std y+4,R24
+ 0394 2224              clr R2
+ 0396 3324              clr R3
+ 0398 3B82              std y+3,R3
+ 039A 2A82              std y+2,R2
+ 039C 84ED              ldi R24,-300
+ 039E 9EEF              ldi R25,-2
+ 03A0 9983              std y+1,R25
+ 03A2 8883              std y+0,R24
+ 03A4 2227              clr R18
+ 03A6 3327              clr R19
+ 03A8 0027              clr R16
+ 03AA 1127              clr R17
+ 03AC 9DDE              xcall _action_set
+ 03AE                   .dbline 85
+ 03AE C9C0              xjmp L18
+ 03B0           L31:
+ 03B0                   .dbline 86
+ 03B0           ; case 12:{action_set(-750,-400,0,0,-400,-750,75);break;} //后倾，1号舵机+500，6号舵机-500，重心转移到后脚，右脚稍弯#####
+ 03B0                   .dbline 86
+ 03B0 8BE4              ldi R24,75
+ 03B2 90E0              ldi R25,0
+ 03B4 9987              std y+9,R25
+ 03B6 8887              std y+8,R24
+ 03B8 82E1              ldi R24,-750
+ 03BA 9DEF              ldi R25,-3
+ 03BC 9F83              std y+7,R25
+ 03BE 8E83              std y+6,R24
+ 03C0 80E7              ldi R24,-400
+ 03C2 9EEF              ldi R25,-2
+ 03C4 9D83              std y+5,R25
+ 03C6 8C83              std y+4,R24
+ 03C8 2224              clr R2
+ 03CA 3324              clr R3
+ 03CC 3B82              std y+3,R3
+ 03CE 2A82              std y+2,R2
+ 03D0 3982              std y+1,R3
+ 03D2 2882              std y+0,R2
+ 03D4 20E7              ldi R18,-400
+ 03D6 3EEF              ldi R19,-2
+ 03D8 02E1              ldi R16,-750
+ 03DA 1DEF              ldi R17,-3
+ 03DC 85DE              xcall _action_set
+ 03DE                   .dbline 86
+ 03DE B1C0              xjmp L18
+ 03E0           L32:
+ 03E0                   .dbline 87
+ 03E0           ; case 13:{action_set(-750,-400,400,300,-400,-750,50);break;} //脚右倾          
+ 03E0                   .dbline 87
+ 03E0 82E3              ldi R24,50
+ 03E2 90E0              ldi R25,0
+ 03E4 9987              std y+9,R25
+ 03E6 8887              std y+8,R24
+ 03E8 82E1              ldi R24,-750
+ 03EA 9DEF              ldi R25,-3
+ 03EC 9F83              std y+7,R25
+ 03EE 8E83              std y+6,R24
+ 03F0 80E7              ldi R24,-400
+ 03F2 9EEF              ldi R25,-2
+ 03F4 9D83              std y+5,R25
+ 03F6 8C83              std y+4,R24
+ 03F8 8CE2              ldi R24,300
+ 03FA 91E0              ldi R25,1
+ 03FC 9B83              std y+3,R25
+ 03FE 8A83              std y+2,R24
+ 0400 80E9              ldi R24,144
+ 0402 9983              std y+1,R25
+ 0404 8883              std y+0,R24
+ 0406 20E7              ldi R18,-400
+ 0408 3EEF              ldi R19,-2
+ 040A 02E1              ldi R16,-750
+ 040C 1DEF              ldi R17,-3
+ 040E 6CDE              xcall _action_set
+ 0410                   .dbline 87
+ 0410 98C0              xjmp L18
+ 0412           L33:
+ 0412                   .dbline 88
+ 0412           ; case 14:{action_set(-750,-600,0,250,0,0,50);break;} //右脚回正                同时，左脚放平，取消前倾                           #####                                                                  #####
+ 0412                   .dbline 88
+ 0412 82E3              ldi R24,50
+ 0414 90E0              ldi R25,0
+ 0416 9987              std y+9,R25
+ 0418 8887              std y+8,R24
+ 041A 2224              clr R2
+ 041C 3324              clr R3
+ 041E 3F82              std y+7,R3
+ 0420 2E82              std y+6,R2
+ 0422 3D82              std y+5,R3
+ 0424 2C82              std y+4,R2
+ 0426 8AEF              ldi R24,250
+ 0428 9B83              std y+3,R25
+ 042A 8A83              std y+2,R24
+ 042C 3982              std y+1,R3
+ 042E 2882              std y+0,R2
+ 0430 28EA              ldi R18,-600
+ 0432 3DEF              ldi R19,-3
+ 0434 02E1              ldi R16,-750
+ 0436 1DEF              ldi R17,-3
+ 0438 57DE              xcall _action_set
+ 043A                   .dbline 88
+ 043A 83C0              xjmp L18
+ 043C           L34:
+ 043C                   .dbline 89
+ 043C           ; case 15:{action_set(0,0,0,250,0,0,40);break;} //右脚回正              同时，左脚放平，取消前倾                           #####
+ 043C                   .dbline 89
+ 043C 88E2              ldi R24,40
+ 043E 90E0              ldi R25,0
+ 0440 9987              std y+9,R25
+ 0442 8887              std y+8,R24
+ 0444 2224              clr R2
+ 0446 3324              clr R3
+ 0448 3F82              std y+7,R3
+ 044A 2E82              std y+6,R2
+ 044C 3D82              std y+5,R3
+ 044E 2C82              std y+4,R2
+ 0450 8AEF              ldi R24,250
+ 0452 9B83              std y+3,R25
+ 0454 8A83              std y+2,R24
+ 0456 3982              std y+1,R3
+ 0458 2882              std y+0,R2
+ 045A 2227              clr R18
+ 045C 3327              clr R19
+ 045E 0027              clr R16
+ 0460 1127              clr R17
+ 0462 42DE              xcall _action_set
+ 0464                   .dbline 89
+ 0464 6EC0              xjmp L18
+ 0466           L35:
+ 0466                   .dbline 90
+ 0466           ; case 16:{action_set(600,600,0,250,0,0,40);break;} //左后抬脚                                                                             #####
+ 0466                   .dbline 90
+ 0466 88E2              ldi R24,40
+ 0468 90E0              ldi R25,0
+ 046A 9987              std y+9,R25
+ 046C 8887              std y+8,R24
+ 046E 2224              clr R2
+ 0470 3324              clr R3
+ 0472 3F82              std y+7,R3
+ 0474 2E82              std y+6,R2
+ 0476 3D82              std y+5,R3
+ 0478 2C82              std y+4,R2
+ 047A 8AEF              ldi R24,250
+ 047C 9B83              std y+3,R25
+ 047E 8A83              std y+2,R24
+ 0480 3982              std y+1,R3
+ 0482 2882              std y+0,R2
+ 0484 28E5              ldi R18,600
+ 0486 32E0              ldi R19,2
+ 0488 08E5              ldi R16,600
+ 048A 12E0              ldi R17,2
+ 048C 2DDE              xcall _action_set
+ 048E                   .dbline 90
+ 048E 59C0              xjmp L18
+ 0490           L36:
+ 0490                   .dbline 91
+ 0490           ; case 17:{action_set(600,600,0,0,600,600,50);break;} //后倾，1号舵机+500，6号舵机-500，把重心转移到前脚上##### 
+ 0490                   .dbline 91
+ 0490 82E3              ldi R24,50
+ 0492 90E0              ldi R25,0
+ 0494 9987              std y+9,R25
+ 0496 8887              std y+8,R24
+ 0498 88E5              ldi R24,600
+ 049A 92E0              ldi R25,2
+ 049C 9F83              std y+7,R25
+ 049E 8E83              std y+6,R24
+ 04A0 9D83              std y+5,R25
+ 04A2 8C83              std y+4,R24
+ 04A4 2224              clr R2
+ 04A6 3324              clr R3
+ 04A8 3B82              std y+3,R3
+ 04AA 2A82              std y+2,R2
+ 04AC 3982              std y+1,R3
+ 04AE 2882              std y+0,R2
+ 04B0 28E5              ldi R18,600
+ 04B2 32E0              ldi R19,2
+ 04B4 08E5              ldi R16,600
+ 04B6 12E0              ldi R17,2
+ 04B8 17DE              xcall _action_set
+ 04BA                   .dbline 91
+ 04BA 43C0              xjmp L18
+ 04BC           L37:
+ 04BC                   .dbline 92
+ 04BC           ; case 18:{action_set(600,600,-350,-450,600,600,50);break;} //脚左倾                                                                    #####
+ 04BC                   .dbline 92
+ 04BC 82E3              ldi R24,50
+ 04BE 90E0              ldi R25,0
+ 04C0 9987              std y+9,R25
+ 04C2 8887              std y+8,R24
+ 04C4 88E5              ldi R24,600
+ 04C6 92E0              ldi R25,2
+ 04C8 9F83              std y+7,R25
+ 04CA 8E83              std y+6,R24
+ 04CC 9D83              std y+5,R25
+ 04CE 8C83              std y+4,R24
+ 04D0 8EE3              ldi R24,-450
+ 04D2 9EEF              ldi R25,-2
+ 04D4 9B83              std y+3,R25
+ 04D6 8A83              std y+2,R24
+ 04D8 82EA              ldi R24,162
+ 04DA 9983              std y+1,R25
+ 04DC 8883              std y+0,R24
+ 04DE 28E5              ldi R18,600
+ 04E0 32E0              ldi R19,2
+ 04E2 08E5              ldi R16,600
+ 04E4 12E0              ldi R17,2
+ 04E6 00DE              xcall _action_set
+ 04E8                   .dbline 92
+ 04E8 2CC0              xjmp L18
+ 04EA           L38:
+ 04EA                   .dbline 93
+ 04EA           ; case 19:{action_set(0,0,-300,-450,600,600,50);break;} //脚左倾                                                                        #####
+ 04EA                   .dbline 93
+ 04EA 82E3              ldi R24,50
+ 04EC 90E0              ldi R25,0
+ 04EE 9987              std y+9,R25
+ 04F0 8887              std y+8,R24
+ 04F2 88E5              ldi R24,600
+ 04F4 92E0              ldi R25,2
+ 04F6 9F83              std y+7,R25
+ 04F8 8E83              std y+6,R24
+ 04FA 9D83              std y+5,R25
+ 04FC 8C83              std y+4,R24
+ 04FE 8EE3              ldi R24,-450
+ 0500 9EEF              ldi R25,-2
+ 0502 9B83              std y+3,R25
+ 0504 8A83              std y+2,R24
+ 0506 84ED              ldi R24,212
+ 0508 9983              std y+1,R25
+ 050A 8883              std y+0,R24
+ 050C 2227              clr R18
+ 050E 3327              clr R19
+ 0510 0027              clr R16
+ 0512 1127              clr R17
+ 0514 E9DD              xcall _action_set
+ 0516                   .dbline 93
+ 0516 15C0              xjmp L18
+ 0518           L39:
+ 0518                   .dbline 94
+ 0518           ; case 20:{action_set(0,0,-300,0,0,0,50);break;} //左回正，取消前倾可以回到3，右抬脚，或者回到0           #####
+ 0518                   .dbline 94
+ 0518 82E3              ldi R24,50
+ 051A 90E0              ldi R25,0
+ 051C 9987              std y+9,R25
+ 051E 8887              std y+8,R24
+ 0520 2224              clr R2
+ 0522 3324              clr R3
+ 0524 3F82              std y+7,R3
+ 0526 2E82              std y+6,R2
+ 0528 3D82              std y+5,R3
+ 052A 2C82              std y+4,R2
+ 052C 3B82              std y+3,R3
+ 052E 2A82              std y+2,R2
+ 0530 84ED              ldi R24,-300
+ 0532 9EEF              ldi R25,-2
+ 0534 9983              std y+1,R25
+ 0536 8883              std y+0,R24
+ 0538 2227              clr R18
+ 053A 3327              clr R19
+ 053C 0027              clr R16
+ 053E 1127              clr R17
+ 0540 D3DD              xcall _action_set
+ 0542                   .dbline 94
+ 0542           L17:
+ 0542           L18:
+ 0542                   .dbline -2
+ 0542           L16:
+ 0542                   .dbline 0 ; func end
+ 0542 2A96              adiw R28,10
+ 0544 5991              ld R21,y+
+ 0546 4991              ld R20,y+
+ 0548 0895              ret
+ 054A                   .dbsym r number 20 I
+ 054A                   .dbend
+ 054A                   .dbfunc e uart1_init _uart1_init fV
+                        .even
+ 054A           _uart1_init::
+ 054A                   .dbline -1
+ 054A                   .dbline 115
+ 054A           ; 
+ 054A           ; }
+ 054A           ; }
+ 054A           ; 
+ 054A           ; 
+ 054A           ; 
+ 054A           ; //=========================================================
+ 054A           ; 
+ 054A           ; //================UART=================
+ 054A           ; /***************************************************************************/
+ 054A           ; /*串口1测试程序                                          */
+ 054A           ; 
+ 054A           ; /***********************************宏定义**********************************/
+ 054A           ; 
+ 054A           ; /****************************************************************************
+ 054A           ; 函数功能:uart1初始化程序
+ 054A           ; 入口参数:
+ 054A           ; 出口参数:
+ 054A           ; ****************************************************************************/
+ 054A           ; void uart1_init(void) //USART1初始化
+ 054A           ; {
+ 054A                   .dbline 117
+ 054A           ;  //DDRD|=(1<<2)|(1<<3);   //  IO
+ 054A           ;  UCSR1B = 0x00;   //关闭USART1
+ 054A 2224              clr R2
+ 054C 20929A00          sts 154,R2
+ 0550                   .dbline 118
+ 0550           ;  UCSR1A = 0x00;   //不适使用倍速发送
+ 0550 20929B00          sts 155,R2
+ 0554                   .dbline 119
+ 0554           ;  UCSR1C = (1<<UCSZ11)|(1<<UCSZ10);//数据位为八位
+ 0554 86E0              ldi R24,6
+ 0556 80939D00          sts 157,R24
+ 055A                   .dbline 120
+ 055A           ;  UBRR1L=(fosc/16/(baud+1))%256;//异步正常模式下，UBRR的计算公式
+ 055A 8AE1              ldi R24,26
+ 055C 80939900          sts 153,R24
+ 0560                   .dbline 121
+ 0560           ;  UBRR1H=(fosc/16/(baud+1))/256;
+ 0560 20929800          sts 152,R2
+ 0564                   .dbline 122
+ 0564           ;  UCSR1B =(1<<RXEN1)|(1<<TXEN1); //接收使能，传送使能
+ 0564 88E1              ldi R24,24
+ 0566 80939A00          sts 154,R24
+ 056A                   .dbline -2
+ 056A           L41:
+ 056A                   .dbline 0 ; func end
+ 056A 0895              ret
+ 056C                   .dbend
+ 056C                   .dbfunc e putchar1 _putchar1 fV
+ 056C           ;              c -> R16
+                        .even
+ 056C           _putchar1::
+ 056C                   .dbline -1
+ 056C                   .dbline 130
+ 056C           ; }
+ 056C           ; /****************************************************************************
+ 056C           ; 函数功能:uart1发送单字节数据
+ 056C           ; 入口参数:c
+ 056C           ; 出口参数:
+ 056C           ; ****************************************************************************/
+ 056C           ; void putchar1(unsigned char c)//串口1发送字符
+ 056C           ;  {  
+ 056C           L43:
+ 056C                   .dbline 131
+ 056C           ;      while (!(UCSR1A&(1<<UDRE1)));//表明发送器一准备就绪
+ 056C           L44:
+ 056C                   .dbline 131
+ 056C 20909B00          lds R2,155
+ 0570 25FE              sbrs R2,5
+ 0572 FCCF              rjmp L43
+ 0574           X8:
+ 0574                   .dbline 132
+ 0574           ;   UDR1=c;    
+ 0574 00939C00          sts 156,R16
+ 0578                   .dbline -2
+ 0578           L42:
+ 0578                   .dbline 0 ; func end
+ 0578 0895              ret
+ 057A                   .dbsym r c 16 c
+ 057A                   .dbend
+ 057A                   .dbfunc e getchar1 _getchar1 fc
+                        .even
+ 057A           _getchar1::
+ 057A                   .dbline -1
+ 057A                   .dbline 141
+ 057A           ;  } 
+ 057A           ;  
+ 057A           ; /****************************************************************************
+ 057A           ; 函数功能:uart1接收单字节数据
+ 057A           ; 入口参数:
+ 057A           ; 出口参数:
+ 057A           ; ****************************************************************************/
+ 057A           ; unsigned char getchar1(void) //串口1接回收数据
+ 057A           ;    {
+ 057A           L47:
+ 057A                   .dbline 142
+ 057A           ;   while(!(UCSR1A& (1<<RXC1)));
+ 057A           L48:
+ 057A                   .dbline 142
+ 057A 20909B00          lds R2,155
+ 057E 27FE              sbrs R2,7
+ 0580 FCCF              rjmp L47
+ 0582           X9:
+ 0582                   .dbline 143
+ 0582           ;      return UDR1;   //将接收到的字符返回
+ 0582 00919C00          lds R16,156
+ 0586                   .dbline -2
+ 0586           L46:
+ 0586                   .dbline 0 ; func end
+ 0586 0895              ret
+ 0588                   .dbend
+ 0588                   .dbfunc e puts1 _puts1 fV
+ 0588           ;              s -> R20,R21
+                        .even
+ 0588           _puts1::
+ 0588 4A93              st -y,R20
+ 058A 5A93              st -y,R21
+ 058C A801              movw R20,R16
+ 058E                   .dbline -1
+ 058E                   .dbline 152
+ 058E           ;  } 
+ 058E           ;  
+ 058E           ; /****************************************************************************
+ 058E           ; 函数功能:uart1发送字符串数据
+ 058E           ; 入口参数:*s
+ 058E           ; 出口参数:
+ 058E           ; ****************************************************************************/    
+ 058E           ; void puts1(char *s)
+ 058E           ;  {
+ 058E 05C0              xjmp L52
+ 0590           L51:
+ 0590                   .dbline 154
+ 0590           ;  while (*s)
+ 0590           ;   {
+ 0590                   .dbline 155
+ 0590           ;   putchar1(*s);
+ 0590 FA01              movw R30,R20
+ 0592 0081              ldd R16,z+0
+ 0594 EBDF              xcall _putchar1
+ 0596                   .dbline 156
+ 0596           ;   s++;
+ 0596 4F5F              subi R20,255  ; offset = 1
+ 0598 5F4F              sbci R21,255
+ 059A                   .dbline 157
+ 059A           ;   } 
+ 059A           L52:
+ 059A                   .dbline 153
+ 059A FA01              movw R30,R20
+ 059C 2080              ldd R2,z+0
+ 059E 2220              tst R2
+ 05A0 B9F7              brne L51
+ 05A2           X10:
+ 05A2                   .dbline 158
+ 05A2           ;         putchar1(0x0a);//回车换行
+ 05A2 0AE0              ldi R16,10
+ 05A4 E3DF              xcall _putchar1
+ 05A6                   .dbline 159
+ 05A6           ;      putchar1(0x0d);
+ 05A6 0DE0              ldi R16,13
+ 05A8 E1DF              xcall _putchar1
+ 05AA                   .dbline -2
+ 05AA           L50:
+ 05AA                   .dbline 0 ; func end
+ 05AA 5991              ld R21,y+
+ 05AC 4991              ld R20,y+
+ 05AE 0895              ret
+ 05B0                   .dbsym r s 20 pc
+ 05B0                   .dbend
+ 05B0                   .dbfunc e io_init _io_init fV
+                        .even
+ 05B0           _io_init::
+ 05B0                   .dbline -1
+ 05B0                   .dbline 165
+ 05B0           ;  } 
+ 05B0           ;  
+ 05B0           ; 
+ 05B0           ;    
+ 05B0           ; void io_init()
+ 05B0           ; {
+ 05B0                   .dbline 166
+ 05B0           ;       DDRA=0x00;
+ 05B0 2224              clr R2
+ 05B2 2ABA              out 0x1a,R2
+ 05B4                   .dbline 167
+ 05B4           ;       DDRB=0x00;
+ 05B4 27BA              out 0x17,R2
+ 05B6                   .dbline 168
+ 05B6           ;       DDRC=0x00;
+ 05B6 24BA              out 0x14,R2
+ 05B8                   .dbline 169
+ 05B8           ;       DDRD=0x00;
+ 05B8 21BA              out 0x11,R2
+ 05BA                   .dbline 170
+ 05BA           ;       DDRE=0x00;
+ 05BA 22B8              out 0x2,R2
+ 05BC                   .dbline 171
+ 05BC           ;       DDRF=0x00;
+ 05BC 20926100          sts 97,R2
+ 05C0                   .dbline 172
+ 05C0           ;       PORTA=0x00;
+ 05C0 2BBA              out 0x1b,R2
+ 05C2                   .dbline 173
+ 05C2           ;       PORTB=0x00;
+ 05C2 28BA              out 0x18,R2
+ 05C4                   .dbline 174
+ 05C4           ;       PORTC=0x00;
+ 05C4 25BA              out 0x15,R2
+ 05C6                   .dbline 175
+ 05C6           ;       PORTD=0x00;
+ 05C6 22BA              out 0x12,R2
+ 05C8                   .dbline 176
+ 05C8           ;       PORTE=0x00;
+ 05C8 23B8              out 0x3,R2
+ 05CA                   .dbline 177
+ 05CA           ;       PORTF=0x00;
+ 05CA 20926200          sts 98,R2
+ 05CE                   .dbline -2
+ 05CE           L54:
+ 05CE                   .dbline 0 ; func end
+ 05CE 0895              ret
+ 05D0                   .dbend
+ 05D0                   .dbfunc e key_init _key_init fV
+                        .even
+ 05D0           _key_init::
+ 05D0                   .dbline -1
+ 05D0                   .dbline 181
+ 05D0           ; }
+ 05D0           ; 
+ 05D0           ; void key_init()
+ 05D0           ; {
+ 05D0                   .dbline 182
+ 05D0           ; io_init();
+ 05D0 EFDF              xcall _io_init
+ 05D2                   .dbline 184
+ 05D2           ;       
+ 05D2           ;       DDRB=0xff;      
+ 05D2 8FEF              ldi R24,255
+ 05D4 87BB              out 0x17,R24
+ 05D6                   .dbline 185
+ 05D6           ;       PORTB=0xff;  
+ 05D6 88BB              out 0x18,R24
+ 05D8                   .dbline 187
+ 05D8           ;       
+ 05D8           ;       DDRE=0x00;  
+ 05D8 2224              clr R2
+ 05DA 22B8              out 0x2,R2
+ 05DC                   .dbline 188
+ 05DC           ;       PORTE=0xF0;
+ 05DC 80EF              ldi R24,240
+ 05DE 83B9              out 0x3,R24
+ 05E0                   .dbline -2
+ 05E0           L55:
+ 05E0                   .dbline 0 ; func end
+ 05E0 0895              ret
+ 05E2                   .dbend
+ 05E2                   .dbfunc e main _main fI
+ 05E2           ;              a -> R10,R11
+                        .even
+ 05E2           _main::
+ 05E2                   .dbline -1
+ 05E2                   .dbline 195
+ 05E2           ; 
+ 05E2           ; }
+ 05E2           ;   
+ 05E2           ; 
+ 05E2           ; 
+ 05E2           ; 
+ 05E2           ; int main(){
+ 05E2                   .dbline 197
+ 05E2           ;    //unsigned char i;
+ 05E2           ;      int a=0;
+ 05E2 AA24              clr R10
+ 05E4 BB24              clr R11
+ 05E6                   .dbline 199
+ 05E6           ; 
+ 05E6           ;    PWM_init();
+ 05E6 4ADD              xcall _PWM_init
+ 05E8                   .dbline 200
+ 05E8           ;    key_init();
+ 05E8 F3DF              xcall _key_init
+ 05EA 45C0              xjmp L58
+ 05EC           L57:
+ 05EC                   .dbline 203
+ 05EC           ;    //uart1_init();
+ 05EC           ;    //puts1("HELLO!");
+ 05EC           ;    while(1){
+ 05EC                   .dbline 206
+ 05EC           ;      //m3=2500;
+ 05EC           ;        //delay(1);
+ 05EC           ;        for(i=0;i<1000;i++)
+ 05EC 2224              clr R2
+ 05EE 3324              clr R3
+ 05F0 30920500          sts _i+1,R3
+ 05F4 20920400          sts _i,R2
+ 05F8           L60:
+ 05F8                   .dbline 207
+ 05F8           ; {for(j=0;j<1000;j++)
+ 05F8                   .dbline 207
+ 05F8 2224              clr R2
+ 05FA 3324              clr R3
+ 05FC 30920300          sts _j+1,R3
+ 0600 20920200          sts _j,R2
+ 0604           L64:
+ 0604                   .dbline 208
+ 0604           ;   {for(k=0;k<8;k++)   //k<10,约三秒  
+ 0604                   .dbline 208
+ 0604 2224              clr R2
+ 0606 3324              clr R3
+ 0608 30920100          sts _k+1,R3
+ 060C 20920000          sts _k,R2
+ 0610           L68:
+ 0610                   .dbline 209
+ 0610           ;     ; 
+ 0610           L69:
+ 0610                   .dbline 208
+ 0610 80910000          lds R24,_k
+ 0614 90910100          lds R25,_k+1
+ 0618 0196              adiw R24,1
+ 061A 90930100          sts _k+1,R25
+ 061E 80930000          sts _k,R24
+ 0622                   .dbline 208
+ 0622 8830              cpi R24,8
+ 0624 E0E0              ldi R30,0
+ 0626 9E07              cpc R25,R30
+ 0628 9CF3              brlt L68
+ 062A           X11:
+ 062A                   .dbline 210
+ 062A           ;   }
+ 062A           L65:
+ 062A                   .dbline 207
+ 062A 80910200          lds R24,_j
+ 062E 90910300          lds R25,_j+1
+ 0632 0196              adiw R24,1
+ 0634 90930300          sts _j+1,R25
+ 0638 80930200          sts _j,R24
+ 063C                   .dbline 207
+ 063C 883E              cpi R24,232
+ 063E E3E0              ldi R30,3
+ 0640 9E07              cpc R25,R30
+ 0642 04F3              brlt L64
+ 0644           X12:
+ 0644                   .dbline 211
+ 0644           ;    }
+ 0644           L61:
+ 0644                   .dbline 206
+ 0644 80910400          lds R24,_i
+ 0648 90910500          lds R25,_i+1
+ 064C 0196              adiw R24,1
+ 064E 90930500          sts _i+1,R25
+ 0652 80930400          sts _i,R24
+ 0656                   .dbline 206
+ 0656 883E              cpi R24,232
+ 0658 E3E0              ldi R30,3
+ 065A 9E07              cpc R25,R30
+ 065C 6CF2              brlt L60
+ 065E           X13:
+ 065E                   .dbline 212
+ 065E           ;     OCR1C=6000-OCR1C; 
+ 065E 20907800          lds R2,120
+ 0662 30907900          lds R3,120+1
+ 0666 80E7              ldi R24,6000
+ 0668 97E1              ldi R25,23
+ 066A 8219              sub R24,R2
+ 066C 9309              sbc R25,R3
+ 066E 90937900          sts 120+1,R25
+ 0672 80937800          sts 120,R24
+ 0676                   .dbline 217
+ 0676           ;        //delay(7);
+ 0676           ;        //m5=3250;
+ 0676           ;        //delay(7);
+ 0676           ;        
+ 0676           ;    }
+ 0676           L58:
+ 0676                   .dbline 203
+ 0676 BACF              xjmp L57
+ 0678           X14:
+ 0678                   .dbline -2
+ 0678           L56:
+ 0678                   .dbline 0 ; func end
+ 0678 0895              ret
+ 067A                   .dbsym r a 10 I
+ 067A                   .dbend
+                        .area bss(ram, con, rel)
+ 0000                   .dbfile D:\Documents\Atmel\CAVRSA~1\try\main3.c
+ 0000           _k::
+ 0000                   .blkb 2
+ 0002                   .dbsym e k _k I
+ 0002           _j::
+ 0002                   .blkb 2
+ 0004                   .dbsym e j _j I
+ 0004           _i::
+ 0004                   .blkb 2
+ 0006                   .dbsym e i _i I
+ 0006           ; 
+ 0006           ; }
+ 0006           ; 
+ 0006           ; 

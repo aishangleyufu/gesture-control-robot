@@ -1,0 +1,61 @@
+/*======
+使用定时器1，OCR1A,OCR1B,OCR1C三个管脚同时输出PWM波形
+在快速PWM的模式下，top=0x03ff=1023
+OCRnX在top时刻更新
+频率=8000000/8/1023=977.5HZ
+=======================================================*/
+#include <iom128v.h> 
+#include <macros.h> 
+void delay_1ms(void)//1ms延时函数 
+{ 
+  long int i; 
+  for (i=0;i<150*16;i++) ;//因为是8M晶振，所以这里乘8，这个延时不够精准 
+   
+}    
+void delay_nms(long int n)//延时n毫秒 
+{ 
+  long int i; 
+  for (i=0;i<n;i++)//执行n次1毫秒延时 
+  {delay_1ms();}  
+} 
+
+
+int main ()
+{
+ int i,j;
+ DDRB|=BIT(PB7);
+
+//将OCR1A管脚配置为输出
+
+TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+
+//时钟8分频
+
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+
+//快速PWM模式top:ICR1
+
+ICR1=40000;
+
+//周期20ms
+
+OCR1C=4000;   //2000---3000--4000
+
+//正脉宽
+
+TCNT1=0x0000;
+for(i=0;i<1000;i++)
+{for(j=0;j<1000;j++)
+  {;;;;
+  ;;;;} }
+/*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ICR1=40000;   */
+  OCR1C=2000;
+
+//清零计数器
+while(1)
+{
+ 
+}
+}

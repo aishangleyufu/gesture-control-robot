@@ -1,0 +1,3237 @@
+                        .module main.c
+                        .area text(rom, con, rel)
+ 0000                   .dbfile main.c
+                        .area data(ram, con, rel)
+ 0000                   .dbfile main.c
+ 0000           _action_series_step::
+ 0000                   .blkb 2
+                        .area idata
+ 0000 0000              .word 0
+                        .area data(ram, con, rel)
+ 0002                   .dbfile main.c
+ 0002                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0002                   .dbsym e action_series_step _action_series_step I
+ 0002           _action_series_number::
+ 0002                   .blkb 2
+                        .area idata
+ 0002 0000              .word 0
+                        .area data(ram, con, rel)
+ 0004                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0004                   .dbsym e action_series_number _action_series_number I
+ 0004           _action_series_flag::
+ 0004                   .blkb 2
+                        .area idata
+ 0004 0000              .word 0
+                        .area data(ram, con, rel)
+ 0006                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0006                   .dbsym e action_series_flag _action_series_flag I
+ 0006           _temp::
+ 0006                   .blkb 2
+                        .area idata
+ 0006 0000              .word 0
+                        .area data(ram, con, rel)
+ 0008                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0008                   .dbsym e temp _temp I
+ 0008           _temp_last::
+ 0008                   .blkb 2
+                        .area idata
+ 0008 0000              .word 0
+                        .area data(ram, con, rel)
+ 000A                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 000A                   .dbsym e temp_last _temp_last I
+ 000A           _sendflag1::
+ 000A                   .blkb 1
+                        .area idata
+ 000A 00                .byte 0
+                        .area data(ram, con, rel)
+ 000B                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 000B                   .dbsym e sendflag1 _sendflag1 c
+ 000B           _sendflag::
+ 000B                   .blkb 1
+                        .area idata
+ 000B 00                .byte 0
+                        .area data(ram, con, rel)
+ 000C                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 000C                   .dbsym e sendflag _sendflag c
+ 000C           _usart0_data_counter::
+ 000C                   .blkb 1
+                        .area idata
+ 000C 00                .byte 0
+                        .area data(ram, con, rel)
+ 000D                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 000D                   .dbsym e usart0_data_counter _usart0_data_counter c
+ 000D           _usart0_data_receive::
+ 000D                   .blkb 2
+                        .area idata
+ 000D 0F0F              .byte 15,15
+                        .area data(ram, con, rel)
+ 000F                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 000F                   .blkb 1
+                        .area idata
+ 000F 0F                .byte 15
+                        .area data(ram, con, rel)
+ 0010                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0010                   .dbsym e usart0_data_receive _usart0_data_receive A[3:3]c
+                        .area text(rom, con, rel)
+ 0000                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0000                   .dbfunc e uart1_init _uart1_init fV
+                        .even
+ 0000           _uart1_init::
+ 0000                   .dbline -1
+ 0000                   .dbline 30
+ 0000           ; /*======
+ 0000           ; Ê¹ÓÃ¶¨Ê±Æ÷1£¬OCR1A,OCR1B,OCR1CÈý¸ö¹Ü½ÅÍ¬Ê±Êä³öPWM²¨ÐÎ
+ 0000           ; ÔÚ¿ìËÙPWMµÄÄ£Ê½ÏÂ£¬top=0x03ff=1023
+ 0000           ; OCRnXÔÚtopÊ±¿Ì¸üÐÂ
+ 0000           ; ÆµÂÊ=8000000/8/1023=977.5HZ
+ 0000           ; =======================================================*/
+ 0000           ; #include <iom128v.h> 
+ 0000           ; #include <macros.h> 
+ 0000           ; int action_series_step=0;
+ 0000           ; int action_series_number=0;
+ 0000           ; int action_series_flag=0;
+ 0000           ; 
+ 0000           ; int temp=0;
+ 0000           ; int temp_last=0;
+ 0000           ; char sendflag1=0;
+ 0000           ; char sendflag=0;
+ 0000           ; #define uchar unsigned char //¶¨ÒåÎÞ·ûºÅ×Ö·ûÎª uchar
+ 0000           ; #define uint unsigned int //¶¨ÒåÎÞ·ûºÅÕûÐÍ
+ 0000           ; #define Crystal 8000000 //¾§Õñ8MHZ
+ 0000           ; #define Baud 115200 //²¨ÌØÂÊ?
+ 0000           ; #define fosc 8000000 
+ 0000           ; #define baud 115200  //²¨ÌØÂÊ
+ 0000           ; uchar data_temp;
+ 0000           ; char data1;
+ 0000           ; uchar usart0_data_counter=0;//´®¿Ú½ÓÊÕÖÐ¶Ï¼ÆÊý
+ 0000           ; uchar usart0_data_receive[3]={0x0f,0x0f,0x0f};//½ÓÊÕ´®¿ÚÊý¾Ý
+ 0000           ; 
+ 0000           ; 
+ 0000           ; void uart1_init(void) //USART1³õÊ¼»¯
+ 0000           ; {
+ 0000                   .dbline 31
+ 0000           ;  DDRD|=(1<<2)|(1<<3);   //  IO
+ 0000 81B3              in R24,0x11
+ 0002 8C60              ori R24,12
+ 0004 81BB              out 0x11,R24
+ 0006                   .dbline 32
+ 0006           ;  UCSR1B = 0x00;   //¹Ø±ÕUSART1
+ 0006 2224              clr R2
+ 0008 20929A00          sts 154,R2
+ 000C                   .dbline 33
+ 000C           ;  UCSR1A = 0x02;   //²»ÊÊÊ¹ÓÃ±¶ËÙ·¢ËÍ
+ 000C 82E0              ldi R24,2
+ 000E 80939B00          sts 155,R24
+ 0012                   .dbline 34
+ 0012           ;  UCSR1C = (1<<UCSZ11)|(1<<UCSZ10);//Êý¾ÝÎ»Îª°ËÎ»
+ 0012 86E0              ldi R24,6
+ 0014 80939D00          sts 157,R24
+ 0018                   .dbline 35
+ 0018           ;  UBRR1L=(fosc/8/(baud+1))%256;//Òì²½Õý³£Ä£Ê½ÏÂ£¬UBRRµÄ¼ÆËã¹«Ê½
+ 0018 88E0              ldi R24,8
+ 001A 80939900          sts 153,R24
+ 001E                   .dbline 36
+ 001E           ;  UBRR1H=(fosc/8/(baud+1))/256;
+ 001E 20929800          sts 152,R2
+ 0022                   .dbline 37
+ 0022           ;  UCSR1B =(1<<RXEN1)|(1<<TXEN1); //½ÓÊÕÊ¹ÄÜ£¬´«ËÍÊ¹ÄÜ
+ 0022 88E1              ldi R24,24
+ 0024 80939A00          sts 154,R24
+ 0028                   .dbline -2
+ 0028           L1:
+ 0028                   .dbline 0 ; func end
+ 0028 0895              ret
+ 002A                   .dbend
+ 002A                   .dbfunc e putchar1 _putchar1 fV
+ 002A           ;              c -> R16
+                        .even
+ 002A           _putchar1::
+ 002A                   .dbline -1
+ 002A                   .dbline 45
+ 002A           ; }
+ 002A           ; /****************************************************************************
+ 002A           ; º¯Êý¹¦ÄÜ:uart1·¢ËÍµ¥×Ö½ÚÊý¾Ý
+ 002A           ; Èë¿Ú²ÎÊý:c
+ 002A           ; ³ö¿Ú²ÎÊý:
+ 002A           ; ****************************************************************************/
+ 002A           ; void putchar1(unsigned char c)//´®¿Ú1·¢ËÍ×Ö·û
+ 002A           ;  {  
+ 002A           L3:
+ 002A                   .dbline 46
+ 002A           ;      while (!(UCSR1A&(1<<UDRE1)));//±íÃ÷·¢ËÍÆ÷Ò»×¼±¸¾ÍÐ÷
+ 002A           L4:
+ 002A                   .dbline 46
+ 002A 20909B00          lds R2,155
+ 002E 25FE              sbrs R2,5
+ 0030 FCCF              rjmp L3
+ 0032           X0:
+ 0032                   .dbline 47
+ 0032           ;   UDR1=c;    
+ 0032 00939C00          sts 156,R16
+ 0036                   .dbline -2
+ 0036           L2:
+ 0036                   .dbline 0 ; func end
+ 0036 0895              ret
+ 0038                   .dbsym r c 16 c
+ 0038                   .dbend
+ 0038                   .dbfunc e getchar1 _getchar1 fc
+                        .even
+ 0038           _getchar1::
+ 0038                   .dbline -1
+ 0038                   .dbline 56
+ 0038           ;  } 
+ 0038           ;  
+ 0038           ; /****************************************************************************
+ 0038           ; º¯Êý¹¦ÄÜ:uart1½ÓÊÕµ¥×Ö½ÚÊý¾Ý
+ 0038           ; Èë¿Ú²ÎÊý:
+ 0038           ; ³ö¿Ú²ÎÊý:
+ 0038           ; ****************************************************************************/
+ 0038           ; unsigned char getchar1(void) //´®¿Ú1½Ó»ØÊÕÊý¾Ý
+ 0038           ;    {
+ 0038           L7:
+ 0038                   .dbline 57
+ 0038           ;   while(!(UCSR1A& (1<<RXC1)));
+ 0038           L8:
+ 0038                   .dbline 57
+ 0038 20909B00          lds R2,155
+ 003C 27FE              sbrs R2,7
+ 003E FCCF              rjmp L7
+ 0040           X1:
+ 0040                   .dbline 58
+ 0040           ;      return UDR1;   //½«½ÓÊÕµ½µÄ×Ö·û·µ»Ø
+ 0040 00919C00          lds R16,156
+ 0044                   .dbline -2
+ 0044           L6:
+ 0044                   .dbline 0 ; func end
+ 0044 0895              ret
+ 0046                   .dbend
+ 0046                   .dbfunc e puts1 _puts1 fV
+ 0046           ;              s -> R20,R21
+                        .even
+ 0046           _puts1::
+ 0046 4A93              st -y,R20
+ 0048 5A93              st -y,R21
+ 004A A801              movw R20,R16
+ 004C                   .dbline -1
+ 004C                   .dbline 67
+ 004C           ;  } 
+ 004C           ;  
+ 004C           ; /****************************************************************************
+ 004C           ; º¯Êý¹¦ÄÜ:uart1·¢ËÍ×Ö·û´®Êý¾Ý
+ 004C           ; Èë¿Ú²ÎÊý:*s
+ 004C           ; ³ö¿Ú²ÎÊý:
+ 004C           ; ****************************************************************************/    
+ 004C           ; void puts1(char *s)
+ 004C           ;  {
+ 004C 05C0              xjmp L12
+ 004E           L11:
+ 004E                   .dbline 69
+ 004E           ;  while (*s)
+ 004E           ;   {
+ 004E                   .dbline 70
+ 004E           ;   putchar1(*s);
+ 004E FA01              movw R30,R20
+ 0050 0081              ldd R16,z+0
+ 0052 EBDF              xcall _putchar1
+ 0054                   .dbline 71
+ 0054           ;   s++;
+ 0054 4F5F              subi R20,255  ; offset = 1
+ 0056 5F4F              sbci R21,255
+ 0058                   .dbline 72
+ 0058           ;   } 
+ 0058           L12:
+ 0058                   .dbline 68
+ 0058 FA01              movw R30,R20
+ 005A 2080              ldd R2,z+0
+ 005C 2220              tst R2
+ 005E B9F7              brne L11
+ 0060           X2:
+ 0060                   .dbline 73
+ 0060           ;         putchar1(0x0a);//»Ø³µ»»ÐÐ
+ 0060 0AE0              ldi R16,10
+ 0062 E3DF              xcall _putchar1
+ 0064                   .dbline 74
+ 0064           ;      putchar1(0x0d);
+ 0064 0DE0              ldi R16,13
+ 0066 E1DF              xcall _putchar1
+ 0068                   .dbline -2
+ 0068           L10:
+ 0068                   .dbline 0 ; func end
+ 0068 5991              ld R21,y+
+ 006A 4991              ld R20,y+
+ 006C 0895              ret
+ 006E                   .dbsym r s 20 pc
+ 006E                   .dbend
+                        .area vector(rom, abs)
+                        .org 120
+ 0078 0C943700          jmp _uart1_rx_isr
+                        .area text(rom, con, rel)
+ 006E                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 006E                   .dbfunc e uart1_rx_isr _uart1_rx_isr fV
+                        .even
+ 006E           _uart1_rx_isr::
+ 006E 2A92              st -y,R2
+ 0070 8A93              st -y,R24
+ 0072 9A93              st -y,R25
+ 0074 2FB6              IN R2,63
+ 0076 2A92              st -y,R2
+ 0078                   .dbline -1
+ 0078                   .dbline 80
+ 0078           ;  } 
+ 0078           ;  
+ 0078           ; 
+ 0078           ; #pragma interrupt_handler uart1_rx_isr:31
+ 0078           ;  void uart1_rx_isr(void)
+ 0078           ; { 
+ 0078                   .dbline 81
+ 0078           ;  UCSR1B=0x00;     
+ 0078 2224              clr R2
+ 007A 20929A00          sts 154,R2
+ 007E                   .dbline 82
+ 007E           ;  temp=2;
+ 007E 82E0              ldi R24,2
+ 0080 90E0              ldi R25,0
+ 0082 90930700          sts _temp+1,R25
+ 0086 80930600          sts _temp,R24
+ 008A                   .dbline 83
+ 008A           ; UCSR1B=0xD8 ;                        //ÔÊÐí·¢ËÍºÍ½ÓÊÕ,½ÓÊÕºÍ·¢ËÍ½áÊøÖÐ¶ÏÊ¹ÄÜ
+ 008A 88ED              ldi R24,216
+ 008C 80939A00          sts 154,R24
+ 0090                   .dbline -2
+ 0090           L14:
+ 0090                   .dbline 0 ; func end
+ 0090 2990              ld R2,y+
+ 0092 2FBE              OUT 63,R2
+ 0094 9991              ld R25,y+
+ 0096 8991              ld R24,y+
+ 0098 2990              ld R2,y+
+ 009A 1895              reti
+ 009C                   .dbend
+ 009C                   .dbfunc e delay_1ms _delay_1ms fV
+ 009C           ;              i -> y+0
+                        .even
+ 009C           _delay_1ms::
+ 009C 2497              sbiw R28,4
+ 009E                   .dbline -1
+ 009E                   .dbline 90
+ 009E           ;                   
+ 009E           ;       
+ 009E           ; }
+ 009E           ; 
+ 009E           ; 
+ 009E           ; void delay_1ms(void)//1msÑÓÊ±º¯Êý 
+ 009E           ; { 
+ 009E                   .dbline 92
+ 009E           ;   long int i; 
+ 009E           ;   for (i=0;i<150*16;i++) ;//ÒòÎªÊÇ8M¾§Õñ£¬ËùÒÔÕâÀï³Ë8£¬Õâ¸öÑÓÊ±²»¹»¾«×¼ 
+ 009E 80E0              ldi R24,0
+ 00A0 8883              std y+0,R24
+ 00A2 8983              std y+1,R24
+ 00A4 8A83              std y+2,R24
+ 00A6 8B83              std y+3,R24
+ 00A8           L16:
+ 00A8                   .dbline 92
+ 00A8           L17:
+ 00A8                   .dbline 92
+ 00A8 81E0              ldi R24,1
+ 00AA 90E0              ldi R25,0
+ 00AC A0E0              ldi R26,0
+ 00AE B0E0              ldi R27,0
+ 00B0 2880              ldd R2,y+0
+ 00B2 3980              ldd R3,y+1
+ 00B4 4A80              ldd R4,y+2
+ 00B6 5B80              ldd R5,y+3
+ 00B8 280E              add R2,R24
+ 00BA 391E              adc R3,R25
+ 00BC 4A1E              adc R4,R26
+ 00BE 5B1E              adc R5,R27
+ 00C0 2882              std y+0,R2
+ 00C2 3982              std y+1,R3
+ 00C4 4A82              std y+2,R4
+ 00C6 5B82              std y+3,R5
+ 00C8                   .dbline 92
+ 00C8 80E6              ldi R24,96
+ 00CA 99E0              ldi R25,9
+ 00CC A0E0              ldi R26,0
+ 00CE B0E0              ldi R27,0
+ 00D0 2880              ldd R2,y+0
+ 00D2 3980              ldd R3,y+1
+ 00D4 4A80              ldd R4,y+2
+ 00D6 5B80              ldd R5,y+3
+ 00D8 2816              cp R2,R24
+ 00DA 3906              cpc R3,R25
+ 00DC 4A06              cpc R4,R26
+ 00DE 5B06              cpc R5,R27
+ 00E0 1CF3              brlt L16
+ 00E2           X3:
+ 00E2                   .dbline -2
+ 00E2           L15:
+ 00E2                   .dbline 0 ; func end
+ 00E2 2496              adiw R28,4
+ 00E4 0895              ret
+ 00E6                   .dbsym l i 0 L
+ 00E6                   .dbend
+ 00E6                   .dbfunc e delay_nms _delay_nms fV
+ 00E6           ;              i -> y+0
+ 00E6           ;              n -> y+8
+                        .even
+ 00E6           _delay_nms::
+ 00E6 0E940000          xcall push_arg4
+ 00EA 0E940000          xcall push_xgsetF000
+ 00EE 2497              sbiw R28,4
+ 00F0                   .dbline -1
+ 00F0                   .dbline 96
+ 00F0           ;   
+ 00F0           ; }    
+ 00F0           ; void delay_nms(long int n)//ÑÓÊ±nºÁÃë 
+ 00F0           ; { 
+ 00F0                   .dbline 98
+ 00F0           ;   long int i; 
+ 00F0           ;   for (i=0;i<n;i++)//Ö´ÐÐn´Î1ºÁÃëÑÓÊ± 
+ 00F0 80E0              ldi R24,0
+ 00F2 8883              std y+0,R24
+ 00F4 8983              std y+1,R24
+ 00F6 8A83              std y+2,R24
+ 00F8 8B83              std y+3,R24
+ 00FA 11C0              xjmp L24
+ 00FC           L21:
+ 00FC                   .dbline 99
+ 00FC           ;   {delay_1ms();}  
+ 00FC                   .dbline 99
+ 00FC CFDF              xcall _delay_1ms
+ 00FE                   .dbline 99
+ 00FE           L22:
+ 00FE                   .dbline 98
+ 00FE 41E0              ldi R20,1
+ 0100 50E0              ldi R21,0
+ 0102 60E0              ldi R22,0
+ 0104 70E0              ldi R23,0
+ 0106 2880              ldd R2,y+0
+ 0108 3980              ldd R3,y+1
+ 010A 4A80              ldd R4,y+2
+ 010C 5B80              ldd R5,y+3
+ 010E 240E              add R2,R20
+ 0110 351E              adc R3,R21
+ 0112 461E              adc R4,R22
+ 0114 571E              adc R5,R23
+ 0116 2882              std y+0,R2
+ 0118 3982              std y+1,R3
+ 011A 4A82              std y+2,R4
+ 011C 5B82              std y+3,R5
+ 011E           L24:
+ 011E                   .dbline 98
+ 011E 2884              ldd R2,y+8
+ 0120 3984              ldd R3,y+9
+ 0122 4A84              ldd R4,y+10
+ 0124 5B84              ldd R5,y+11
+ 0126 6880              ldd R6,y+0
+ 0128 7980              ldd R7,y+1
+ 012A 8A80              ldd R8,y+2
+ 012C 9B80              ldd R9,y+3
+ 012E 6214              cp R6,R2
+ 0130 7304              cpc R7,R3
+ 0132 8404              cpc R8,R4
+ 0134 9504              cpc R9,R5
+ 0136 14F3              brlt L21
+ 0138           X4:
+ 0138                   .dbline -2
+ 0138           L20:
+ 0138                   .dbline 0 ; func end
+ 0138 2496              adiw R28,4
+ 013A 0E940000          xcall pop_xgsetF000
+ 013E 2496              adiw R28,4
+ 0140 0895              ret
+ 0142                   .dbsym l i 0 L
+ 0142                   .dbsym l n 8 L
+ 0142                   .dbend
+ 0142                   .dbfunc e action_set _action_set fV
+ 0142           ; action_do_last -> <dead>
+ 0142           ;          ch_3c -> R10,R11
+ 0142           ;          ch_3b -> R12,R13
+ 0142           ;          ch_3a -> R14,R15
+ 0142           ;          ch_1c -> R20,R21
+ 0142           ;          ch_1b -> y+10
+ 0142           ;          ch_1a -> R22,R23
+                        .even
+ 0142           _action_set::
+ 0142 3A93              st -y,r19
+ 0144 2A93              st -y,r18
+ 0146 0E940000          xcall push_xgsetF0FC
+ 014A B801              movw R22,R16
+ 014C 4C85              ldd R20,y+12
+ 014E 5D85              ldd R21,y+13
+ 0150 EE84              ldd R14,y+14
+ 0152 FF84              ldd R15,y+15
+ 0154 C888              ldd R12,y+16
+ 0156 D988              ldd R13,y+17
+ 0158 AA88              ldd R10,y+18
+ 015A BB88              ldd R11,y+19
+ 015C                   .dbline -1
+ 015C                   .dbline 103
+ 015C           ; } 
+ 015C           ; 
+ 015C           ; void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+ 015C           ; {
+ 015C                   .dbline 104
+ 015C           ;     OCR1A=ch_1a/2+1680;   //1
+ 015C 22E0              ldi R18,2
+ 015E 30E0              ldi R19,0
+ 0160 8B01              movw R16,R22
+ 0162 0E940000          xcall div16s
+ 0166 C801              movw R24,R16
+ 0168 8057              subi R24,112  ; offset = 1680
+ 016A 994F              sbci R25,249
+ 016C 9BBD              out 0x2b,R25
+ 016E 8ABD              out 0x2a,R24
+ 0170                   .dbline 105
+ 0170           ;       OCR1B=ch_1b/2+1620;   //2
+ 0170 22E0              ldi R18,2
+ 0172 30E0              ldi R19,0
+ 0174 0A85              ldd R16,y+10
+ 0176 1B85              ldd R17,y+11
+ 0178 0E940000          xcall div16s
+ 017C C801              movw R24,R16
+ 017E 8C5A              subi R24,172  ; offset = 1620
+ 0180 994F              sbci R25,249
+ 0182 99BD              out 0x29,R25
+ 0184 88BD              out 0x28,R24
+ 0186                   .dbline 106
+ 0186           ;       OCR1C=ch_1c/2+1680;   //3
+ 0186 22E0              ldi R18,2
+ 0188 30E0              ldi R19,0
+ 018A 8A01              movw R16,R20
+ 018C 0E940000          xcall div16s
+ 0190 C801              movw R24,R16
+ 0192 8057              subi R24,112  ; offset = 1680
+ 0194 994F              sbci R25,249
+ 0196 90937900          sts 120+1,R25
+ 019A 80937800          sts 120,R24
+ 019E                   .dbline 107
+ 019E           ;       OCR3A=ch_3a/2+1700;   //4
+ 019E 22E0              ldi R18,2
+ 01A0 30E0              ldi R19,0
+ 01A2 8701              movw R16,R14
+ 01A4 0E940000          xcall div16s
+ 01A8 C801              movw R24,R16
+ 01AA 8C55              subi R24,92  ; offset = 1700
+ 01AC 994F              sbci R25,249
+ 01AE 90938700          sts 134+1,R25
+ 01B2 80938600          sts 134,R24
+ 01B6                   .dbline 108
+ 01B6           ;       OCR3B=ch_3b/2+1550;   //5
+ 01B6 22E0              ldi R18,2
+ 01B8 30E0              ldi R19,0
+ 01BA 8601              movw R16,R12
+ 01BC 0E940000          xcall div16s
+ 01C0 C801              movw R24,R16
+ 01C2 825F              subi R24,242  ; offset = 1550
+ 01C4 994F              sbci R25,249
+ 01C6 90938500          sts 132+1,R25
+ 01CA 80938400          sts 132,R24
+ 01CE                   .dbline 109
+ 01CE           ;       OCR3C=ch_3c/2+1700;   //6
+ 01CE 22E0              ldi R18,2
+ 01D0 30E0              ldi R19,0
+ 01D2 8501              movw R16,R10
+ 01D4 0E940000          xcall div16s
+ 01D8 C801              movw R24,R16
+ 01DA 8C55              subi R24,92  ; offset = 1700
+ 01DC 994F              sbci R25,249
+ 01DE 90938300          sts 130+1,R25
+ 01E2 80938200          sts 130,R24
+ 01E6                   .dbline -2
+ 01E6           L25:
+ 01E6                   .dbline 0 ; func end
+ 01E6 0E940000          xcall pop_xgsetF0FC
+ 01EA 2296              adiw R28,2
+ 01EC 0895              ret
+ 01EE                   .dbsym l action_do_last 20 I
+ 01EE                   .dbsym r ch_3c 10 I
+ 01EE                   .dbsym r ch_3b 12 I
+ 01EE                   .dbsym r ch_3a 14 I
+ 01EE                   .dbsym r ch_1c 20 I
+ 01EE                   .dbsym l ch_1b 10 I
+ 01EE                   .dbsym r ch_1a 22 I
+ 01EE                   .dbend
+ 01EE                   .dbfunc e action_base _action_base fV
+                        .area  func_lit(rom, con, rel)
+ 0000           L54:
+ 0000 1101              .word `L29
+ 0002 2501              .word `L30
+ 0004 3B01              .word `L31
+ 0006 5101              .word `L32
+ 0008 6901              .word `L33
+ 000A 8101              .word `L34
+ 000C 9701              .word `L35
+ 000E AE01              .word `L36
+ 0010 C301              .word `L37
+ 0012 DA01              .word `L38
+ 0014 F101              .word `L39
+ 0016 0A02              .word `L40
+ 0018 2302              .word `L41
+ 001A 3B02              .word `L42
+ 001C 5502              .word `L43
+ 001E 6A02              .word `L44
+ 0020 7F02              .word `L45
+ 0022 9402              .word `L46
+ 0024 A902              .word `L47
+ 0026 C002              .word `L48
+ 0028 D902              .word `L49
+ 002A EF02              .word `L50
+ 002C 0503              .word `L51
+ 002E 1C03              .word `L52
+ 0030 3303              .word `L53
+                        .area text(rom, con, rel)
+                ;         number -> R20,R21
+                        .even
+ 01EE           _action_base::
+ 01EE 4A93              st -y,R20
+ 01F0 5A93              st -y,R21
+ 01F2 A801              movw R20,R16
+ 01F4 2A97              sbiw R28,10
+ 01F6                   .dbline -1
+ 01F6                   .dbline 121
+ 01F6           ;       /*
+ 01F6           ; OCR1C=1680;   //2000---3000--4000
+ 01F6           ; OCR1B=1780;
+ 01F6           ; OCR1A=1640;
+ 01F6           ; OCR3C=1620;
+ 01F6           ; OCR3B=1600;
+ 01F6           ; OCR3A=1800;
+ 01F6           ; */
+ 01F6           ; }
+ 01F6           ; 
+ 01F6           ; void action_base(int number)
+ 01F6           ; { 
+ 01F6                   .dbline 122
+ 01F6           ; switch(number)
+ 01F6 4030              cpi R20,0
+ 01F8 E0E0              ldi R30,0
+ 01FA 5E07              cpc R21,R30
+ 01FC 0CF4              brge X8
+ 01FE 48C2              xjmp L27
+ 0200           X8:
+ 0200           X5:
+ 0200 88E1              ldi R24,24
+ 0202 90E0              ldi R25,0
+ 0204 8417              cp R24,R20
+ 0206 9507              cpc R25,R21
+ 0208 0CF4              brge X9
+ 020A 42C2              xjmp L27
+ 020C           X9:
+ 020C           X6:
+ 020C 80E0              ldi R24,<L54
+ 020E 90E0              ldi R25,>L54
+ 0210 FA01              movw R30,R20
+ 0212 EE0F              lsl R30
+ 0214 FF1F              rol R31
+ 0216 E80F              add R30,R24
+ 0218 F91F              adc R31,R25
+ 021A 2790              elpm R2,Z+
+ 021C 3690              elpm R3,Z
+ 021E F101              movw R30,R2
+ 0220 0994               ijmp
+ 0222           X7:
+ 0222                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0222                   .dbline 123
+ 0222           ; {
+ 0222           L29:
+ 0222                   .dbline 125
+ 0222           ; case 0:
+ 0222           ; action_set(0,0,0,0,0,0,100);
+ 0222 84E6              ldi R24,100
+ 0224 90E0              ldi R25,0
+ 0226 9987              std y+9,R25
+ 0228 8887              std y+8,R24
+ 022A 2224              clr R2
+ 022C 3324              clr R3
+ 022E 3F82              std y+7,R3
+ 0230 2E82              std y+6,R2
+ 0232 3D82              std y+5,R3
+ 0234 2C82              std y+4,R2
+ 0236 3B82              std y+3,R3
+ 0238 2A82              std y+2,R2
+ 023A 3982              std y+1,R3
+ 023C 2882              std y+0,R2
+ 023E 2227              clr R18
+ 0240 3327              clr R19
+ 0242 0027              clr R16
+ 0244 1127              clr R17
+ 0246 7DDF              xcall _action_set
+ 0248                   .dbline 126
+ 0248           ; break; //Ö±Á¢
+ 0248 23C2              xjmp L28
+ 024A           L30:
+ 024A                   .dbline 129
+ 024A           ; //case 1:{action_set(0,0,-200,700,0,0,50);break;} //ÓÒ½Å×óÇã                                                                                     #####
+ 024A           ; case 1:
+ 024A           ; action_set(400,400,0,400,0,0,40);
+ 024A 88E2              ldi R24,40
+ 024C 90E0              ldi R25,0
+ 024E 9987              std y+9,R25
+ 0250 8887              std y+8,R24
+ 0252 2224              clr R2
+ 0254 3324              clr R3
+ 0256 3F82              std y+7,R3
+ 0258 2E82              std y+6,R2
+ 025A 3D82              std y+5,R3
+ 025C 2C82              std y+4,R2
+ 025E 80E9              ldi R24,400
+ 0260 91E0              ldi R25,1
+ 0262 9B83              std y+3,R25
+ 0264 8A83              std y+2,R24
+ 0266 3982              std y+1,R3
+ 0268 2882              std y+0,R2
+ 026A 20E9              ldi R18,400
+ 026C 31E0              ldi R19,1
+ 026E 00E9              ldi R16,400
+ 0270 11E0              ldi R17,1
+ 0272 67DF              xcall _action_set
+ 0274                   .dbline 130
+ 0274           ; break; //×ó½Å×óÇã                             -300/-400                                               #####
+ 0274 0DC2              xjmp L28
+ 0276           L31:
+ 0276                   .dbline 132
+ 0276           ; case 2:
+ 0276           ; action_set(-300,-300,0,0,-200,0,40);
+ 0276 88E2              ldi R24,40
+ 0278 90E0              ldi R25,0
+ 027A 9987              std y+9,R25
+ 027C 8887              std y+8,R24
+ 027E 2224              clr R2
+ 0280 3324              clr R3
+ 0282 3F82              std y+7,R3
+ 0284 2E82              std y+6,R2
+ 0286 88E3              ldi R24,-200
+ 0288 9FEF              ldi R25,-1
+ 028A 9D83              std y+5,R25
+ 028C 8C83              std y+4,R24
+ 028E 3B82              std y+3,R3
+ 0290 2A82              std y+2,R2
+ 0292 3982              std y+1,R3
+ 0294 2882              std y+0,R2
+ 0296 24ED              ldi R18,-300
+ 0298 3EEF              ldi R19,-2
+ 029A 04ED              ldi R16,-300
+ 029C 1EEF              ldi R17,-2
+ 029E 51DF              xcall _action_set
+ 02A0                   .dbline 133
+ 02A0           ; break; //ÓÒÌ§½Å£¬Í¬Ê±ÓÒ½Å·ÅÆ½                                                  #####
+ 02A0 F7C1              xjmp L28
+ 02A2           L32:
+ 02A2                   .dbline 137
+ 02A2           ; //case 4:{action_set(700,700,-350,-400,700,700,50);break;} //×óÍä½Å 3,4¿ÉÒÔÒ»ÆðÍê³É
+ 02A2           ; //case 5:{action_set(700,700,0,0,700,700,50);break;} //×ªÕý   
+ 02A2           ; case 3:
+ 02A2           ; action_set(50,0,-150,50,400,400,75);
+ 02A2 8BE4              ldi R24,75
+ 02A4 90E0              ldi R25,0
+ 02A6 9987              std y+9,R25
+ 02A8 8887              std y+8,R24
+ 02AA 80E9              ldi R24,400
+ 02AC 91E0              ldi R25,1
+ 02AE 9F83              std y+7,R25
+ 02B0 8E83              std y+6,R24
+ 02B2 9D83              std y+5,R25
+ 02B4 8C83              std y+4,R24
+ 02B6 82E3              ldi R24,50
+ 02B8 90E0              ldi R25,0
+ 02BA 9B83              std y+3,R25
+ 02BC 8A83              std y+2,R24
+ 02BE 8AE6              ldi R24,-150
+ 02C0 9FEF              ldi R25,-1
+ 02C2 9983              std y+1,R25
+ 02C4 8883              std y+0,R24
+ 02C6 2227              clr R18
+ 02C8 3327              clr R19
+ 02CA 02E3              ldi R16,50
+ 02CC 10E0              ldi R17,0
+ 02CE 39DF              xcall _action_set
+ 02D0                   .dbline 138
+ 02D0           ; break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ#####
+ 02D0 DFC1              xjmp L28
+ 02D2           L33:
+ 02D2                   .dbline 140
+ 02D2           ; case 4:
+ 02D2           ; action_set(100,100,-50,100,350,350,50);
+ 02D2 82E3              ldi R24,50
+ 02D4 90E0              ldi R25,0
+ 02D6 9987              std y+9,R25
+ 02D8 8887              std y+8,R24
+ 02DA 8EE5              ldi R24,350
+ 02DC 91E0              ldi R25,1
+ 02DE 9F83              std y+7,R25
+ 02E0 8E83              std y+6,R24
+ 02E2 9D83              std y+5,R25
+ 02E4 8C83              std y+4,R24
+ 02E6 84E6              ldi R24,100
+ 02E8 90E0              ldi R25,0
+ 02EA 9B83              std y+3,R25
+ 02EC 8A83              std y+2,R24
+ 02EE 8EEC              ldi R24,-50
+ 02F0 9FEF              ldi R25,-1
+ 02F2 9983              std y+1,R25
+ 02F4 8883              std y+0,R24
+ 02F6 24E6              ldi R18,100
+ 02F8 30E0              ldi R19,0
+ 02FA 04E6              ldi R16,100
+ 02FC 10E0              ldi R17,0
+ 02FE 21DF              xcall _action_set
+ 0300                   .dbline 141
+ 0300           ; break; //×ó½ÅÓÒÇã             Ç°Çã                                                              #####
+ 0300 C7C1              xjmp L28
+ 0302           L34:
+ 0302                   .dbline 144
+ 0302           ; //case 8:{action_set(400,700,-750,300,700,1000,50);break;} //ÓÒ½ÅÓÒÇã£¬¶ÈÊý»¹µÃ¼õÐ¡    
+ 0302           ; case 5:
+ 0302           ; action_set(200,300,0,50,0,200,50);
+ 0302 82E3              ldi R24,50
+ 0304 90E0              ldi R25,0
+ 0306 9987              std y+9,R25
+ 0308 8887              std y+8,R24
+ 030A 88EC              ldi R24,200
+ 030C 9F83              std y+7,R25
+ 030E 8E83              std y+6,R24
+ 0310 2224              clr R2
+ 0312 3324              clr R3
+ 0314 3D82              std y+5,R3
+ 0316 2C82              std y+4,R2
+ 0318 82E3              ldi R24,50
+ 031A 9B83              std y+3,R25
+ 031C 8A83              std y+2,R24
+ 031E 3982              std y+1,R3
+ 0320 2882              std y+0,R2
+ 0322 2CE2              ldi R18,300
+ 0324 31E0              ldi R19,1
+ 0326 08EC              ldi R16,200
+ 0328 10E0              ldi R17,0
+ 032A 0BDF              xcall _action_set
+ 032C                   .dbline 145
+ 032C           ; break; //ÓÒ½ÅÁ¢Õý  £¬Ç°Çã
+ 032C B1C1              xjmp L28
+ 032E           L35:
+ 032E                   .dbline 147
+ 032E           ; case 6:
+ 032E           ; action_set(0,0,-25,100,0,0,25);
+ 032E 89E1              ldi R24,25
+ 0330 90E0              ldi R25,0
+ 0332 9987              std y+9,R25
+ 0334 8887              std y+8,R24
+ 0336 2224              clr R2
+ 0338 3324              clr R3
+ 033A 3F82              std y+7,R3
+ 033C 2E82              std y+6,R2
+ 033E 3D82              std y+5,R3
+ 0340 2C82              std y+4,R2
+ 0342 84E6              ldi R24,100
+ 0344 9B83              std y+3,R25
+ 0346 8A83              std y+2,R24
+ 0348 87EE              ldi R24,-25
+ 034A 9FEF              ldi R25,-1
+ 034C 9983              std y+1,R25
+ 034E 8883              std y+0,R24
+ 0350 2227              clr R18
+ 0352 3327              clr R19
+ 0354 0027              clr R16
+ 0356 1127              clr R17
+ 0358 F4DE              xcall _action_set
+ 035A                   .dbline 148
+ 035A           ; break; //×ó½Å»ØÕý             Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã                           #####
+ 035A 9AC1              xjmp L28
+ 035C           L36:
+ 035C                   .dbline 150
+ 035C           ; case 7:
+ 035C           ; action_set(-300,-300,0,100,0,0,25);
+ 035C 89E1              ldi R24,25
+ 035E 90E0              ldi R25,0
+ 0360 9987              std y+9,R25
+ 0362 8887              std y+8,R24
+ 0364 2224              clr R2
+ 0366 3324              clr R3
+ 0368 3F82              std y+7,R3
+ 036A 2E82              std y+6,R2
+ 036C 3D82              std y+5,R3
+ 036E 2C82              std y+4,R2
+ 0370 84E6              ldi R24,100
+ 0372 9B83              std y+3,R25
+ 0374 8A83              std y+2,R24
+ 0376 3982              std y+1,R3
+ 0378 2882              std y+0,R2
+ 037A 24ED              ldi R18,-300
+ 037C 3EEF              ldi R19,-2
+ 037E 04ED              ldi R16,-300
+ 0380 1EEF              ldi R17,-2
+ 0382 DFDE              xcall _action_set
+ 0384                   .dbline 151
+ 0384           ; break; //×óÌ§½Å                                                                                  #####
+ 0384 85C1              xjmp L28
+ 0386           L37:
+ 0386                   .dbline 155
+ 0386           ; //case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //ÓÒÍä½Å        11,12¿ÉÒÔÒ»ÆðÍê³É £¬Ç°½ÅÎ´×ÅµØ
+ 0386           ; //case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //ÓÒ×ªÕý 
+ 0386           ; case 8:
+ 0386           ; action_set(-500,-300,0,0,-300,-500,75);
+ 0386 8BE4              ldi R24,75
+ 0388 90E0              ldi R25,0
+ 038A 9987              std y+9,R25
+ 038C 8887              std y+8,R24
+ 038E 8CE0              ldi R24,-500
+ 0390 9EEF              ldi R25,-2
+ 0392 9F83              std y+7,R25
+ 0394 8E83              std y+6,R24
+ 0396 84ED              ldi R24,212
+ 0398 9D83              std y+5,R25
+ 039A 8C83              std y+4,R24
+ 039C 2224              clr R2
+ 039E 3324              clr R3
+ 03A0 3B82              std y+3,R3
+ 03A2 2A82              std y+2,R2
+ 03A4 3982              std y+1,R3
+ 03A6 2882              std y+0,R2
+ 03A8 24ED              ldi R18,-300
+ 03AA 3EEF              ldi R19,-2
+ 03AC 0CE0              ldi R16,-500
+ 03AE 1EEF              ldi R17,-2
+ 03B0 C8DE              xcall _action_set
+ 03B2                   .dbline 156
+ 03B2           ; break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ£¬×ó½ÅÉÔÍä##### 
+ 03B2 6EC1              xjmp L28
+ 03B4           L38:
+ 03B4                   .dbline 158
+ 03B4           ; case 9:
+ 03B4           ; action_set(-500,-300,-150,-150,-300,-500,50);
+ 03B4 82E3              ldi R24,50
+ 03B6 90E0              ldi R25,0
+ 03B8 9987              std y+9,R25
+ 03BA 8887              std y+8,R24
+ 03BC 8CE0              ldi R24,-500
+ 03BE 9EEF              ldi R25,-2
+ 03C0 9F83              std y+7,R25
+ 03C2 8E83              std y+6,R24
+ 03C4 84ED              ldi R24,212
+ 03C6 9D83              std y+5,R25
+ 03C8 8C83              std y+4,R24
+ 03CA 8AE6              ldi R24,-150
+ 03CC 9FEF              ldi R25,-1
+ 03CE 9B83              std y+3,R25
+ 03D0 8A83              std y+2,R24
+ 03D2 9983              std y+1,R25
+ 03D4 8883              std y+0,R24
+ 03D6 24ED              ldi R18,-300
+ 03D8 3EEF              ldi R19,-2
+ 03DA 0CE0              ldi R16,-500
+ 03DC 1EEF              ldi R17,-2
+ 03DE B1DE              xcall _action_set
+ 03E0                   .dbline 159
+ 03E0           ; break; //ÓÒ½Å×óÇã     Ç°Çã                                                            #####
+ 03E0 57C1              xjmp L28
+ 03E2           L39:
+ 03E2                   .dbline 162
+ 03E2           ; //case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //×ó½Å×óÇã   
+ 03E2           ; case 10:
+ 03E2           ; action_set(0,0,-150,-100,-300,-600,50);
+ 03E2 82E3              ldi R24,50
+ 03E4 90E0              ldi R25,0
+ 03E6 9987              std y+9,R25
+ 03E8 8887              std y+8,R24
+ 03EA 88EA              ldi R24,-600
+ 03EC 9DEF              ldi R25,-3
+ 03EE 9F83              std y+7,R25
+ 03F0 8E83              std y+6,R24
+ 03F2 84ED              ldi R24,-300
+ 03F4 9EEF              ldi R25,-2
+ 03F6 9D83              std y+5,R25
+ 03F8 8C83              std y+4,R24
+ 03FA 8CE9              ldi R24,-100
+ 03FC 9FEF              ldi R25,-1
+ 03FE 9B83              std y+3,R25
+ 0400 8A83              std y+2,R24
+ 0402 8AE6              ldi R24,106
+ 0404 9983              std y+1,R25
+ 0406 8883              std y+0,R24
+ 0408 2227              clr R18
+ 040A 3327              clr R19
+ 040C 0027              clr R16
+ 040E 1127              clr R17
+ 0410 98DE              xcall _action_set
+ 0412                   .dbline 163
+ 0412           ; break; //×óÁ¢Õý£¬Ç°Çã
+ 0412 3EC1              xjmp L28
+ 0414           L40:
+ 0414                   .dbline 167
+ 0414           ; //case 10:{action_set(0,0,-300,0,0,0,75);break;} //ÓÒ»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0                 #####
+ 0414           ; 
+ 0414           ; case 11:
+ 0414           ; action_set(0,0,-200,0,-300,-400,50);
+ 0414 82E3              ldi R24,50
+ 0416 90E0              ldi R25,0
+ 0418 9987              std y+9,R25
+ 041A 8887              std y+8,R24
+ 041C 80E7              ldi R24,-400
+ 041E 9EEF              ldi R25,-2
+ 0420 9F83              std y+7,R25
+ 0422 8E83              std y+6,R24
+ 0424 84ED              ldi R24,212
+ 0426 9D83              std y+5,R25
+ 0428 8C83              std y+4,R24
+ 042A 2224              clr R2
+ 042C 3324              clr R3
+ 042E 3B82              std y+3,R3
+ 0430 2A82              std y+2,R2
+ 0432 88E3              ldi R24,-200
+ 0434 9FEF              ldi R25,-1
+ 0436 9983              std y+1,R25
+ 0438 8883              std y+0,R24
+ 043A 2227              clr R18
+ 043C 3327              clr R19
+ 043E 0027              clr R16
+ 0440 1127              clr R17
+ 0442 7FDE              xcall _action_set
+ 0444                   .dbline 168
+ 0444           ; break; //ÓÒºóÌ§½Å£¬Í¬Ê±Ò½Å·ÅÆ½                                                         #####
+ 0444 25C1              xjmp L28
+ 0446           L41:
+ 0446                   .dbline 170
+ 0446           ; case 12:
+ 0446           ; action_set(-650,-300,0,0,-300,-550,75);
+ 0446 8BE4              ldi R24,75
+ 0448 90E0              ldi R25,0
+ 044A 9987              std y+9,R25
+ 044C 8887              std y+8,R24
+ 044E 8AED              ldi R24,-550
+ 0450 9DEF              ldi R25,-3
+ 0452 9F83              std y+7,R25
+ 0454 8E83              std y+6,R24
+ 0456 84ED              ldi R24,-300
+ 0458 9EEF              ldi R25,-2
+ 045A 9D83              std y+5,R25
+ 045C 8C83              std y+4,R24
+ 045E 2224              clr R2
+ 0460 3324              clr R3
+ 0462 3B82              std y+3,R3
+ 0464 2A82              std y+2,R2
+ 0466 3982              std y+1,R3
+ 0468 2882              std y+0,R2
+ 046A 24ED              ldi R18,-300
+ 046C 3EEF              ldi R19,-2
+ 046E 06E7              ldi R16,-650
+ 0470 1DEF              ldi R17,-3
+ 0472 67DE              xcall _action_set
+ 0474                   .dbline 171
+ 0474           ; break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬ÖØÐÄ×ªÒÆµ½ºó½Å£¬ÓÒ½ÅÉÔÍä#####
+ 0474 0DC1              xjmp L28
+ 0476           L42:
+ 0476                   .dbline 173
+ 0476           ; case 13:
+ 0476           ; action_set(-550,-300,0,60,-100,-350,50);
+ 0476 82E3              ldi R24,50
+ 0478 90E0              ldi R25,0
+ 047A 9987              std y+9,R25
+ 047C 8887              std y+8,R24
+ 047E 82EA              ldi R24,-350
+ 0480 9EEF              ldi R25,-2
+ 0482 9F83              std y+7,R25
+ 0484 8E83              std y+6,R24
+ 0486 8CE9              ldi R24,-100
+ 0488 9FEF              ldi R25,-1
+ 048A 9D83              std y+5,R25
+ 048C 8C83              std y+4,R24
+ 048E 8CE3              ldi R24,60
+ 0490 90E0              ldi R25,0
+ 0492 9B83              std y+3,R25
+ 0494 8A83              std y+2,R24
+ 0496 2224              clr R2
+ 0498 3324              clr R3
+ 049A 3982              std y+1,R3
+ 049C 2882              std y+0,R2
+ 049E 24ED              ldi R18,-300
+ 04A0 3EEF              ldi R19,-2
+ 04A2 0AED              ldi R16,-550
+ 04A4 1DEF              ldi R17,-3
+ 04A6 4DDE              xcall _action_set
+ 04A8                   .dbline 174
+ 04A8           ; break; //½ÅÓÒÇã               
+ 04A8 F3C0              xjmp L28
+ 04AA           L43:
+ 04AA                   .dbline 175
+ 04AA           ; case 14:action_set(-450,-300,0,120,0,0,50);
+ 04AA 82E3              ldi R24,50
+ 04AC 90E0              ldi R25,0
+ 04AE 9987              std y+9,R25
+ 04B0 8887              std y+8,R24
+ 04B2 2224              clr R2
+ 04B4 3324              clr R3
+ 04B6 3F82              std y+7,R3
+ 04B8 2E82              std y+6,R2
+ 04BA 3D82              std y+5,R3
+ 04BC 2C82              std y+4,R2
+ 04BE 88E7              ldi R24,120
+ 04C0 9B83              std y+3,R25
+ 04C2 8A83              std y+2,R24
+ 04C4 3982              std y+1,R3
+ 04C6 2882              std y+0,R2
+ 04C8 24ED              ldi R18,-300
+ 04CA 3EEF              ldi R19,-2
+ 04CC 0EE3              ldi R16,-450
+ 04CE 1EEF              ldi R17,-2
+ 04D0 38DE              xcall _action_set
+ 04D2                   .dbline 176
+ 04D2           ; break; //ÓÒ½Å»ØÕý             Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã                           #####                                                                  #####
+ 04D2 DEC0              xjmp L28
+ 04D4           L44:
+ 04D4                   .dbline 178
+ 04D4           ; case 15:
+ 04D4           ; action_set(0,0,0,120,0,0,40);
+ 04D4 88E2              ldi R24,40
+ 04D6 90E0              ldi R25,0
+ 04D8 9987              std y+9,R25
+ 04DA 8887              std y+8,R24
+ 04DC 2224              clr R2
+ 04DE 3324              clr R3
+ 04E0 3F82              std y+7,R3
+ 04E2 2E82              std y+6,R2
+ 04E4 3D82              std y+5,R3
+ 04E6 2C82              std y+4,R2
+ 04E8 88E7              ldi R24,120
+ 04EA 9B83              std y+3,R25
+ 04EC 8A83              std y+2,R24
+ 04EE 3982              std y+1,R3
+ 04F0 2882              std y+0,R2
+ 04F2 2227              clr R18
+ 04F4 3327              clr R19
+ 04F6 0027              clr R16
+ 04F8 1127              clr R17
+ 04FA 23DE              xcall _action_set
+ 04FC                   .dbline 179
+ 04FC           ; break; //ÓÒ½Å»ØÕý             Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã                           #####
+ 04FC C9C0              xjmp L28
+ 04FE           L45:
+ 04FE                   .dbline 181
+ 04FE           ; case 16:
+ 04FE           ; action_set(300,300,0,50,0,0,40);
+ 04FE 88E2              ldi R24,40
+ 0500 90E0              ldi R25,0
+ 0502 9987              std y+9,R25
+ 0504 8887              std y+8,R24
+ 0506 2224              clr R2
+ 0508 3324              clr R3
+ 050A 3F82              std y+7,R3
+ 050C 2E82              std y+6,R2
+ 050E 3D82              std y+5,R3
+ 0510 2C82              std y+4,R2
+ 0512 82E3              ldi R24,50
+ 0514 9B83              std y+3,R25
+ 0516 8A83              std y+2,R24
+ 0518 3982              std y+1,R3
+ 051A 2882              std y+0,R2
+ 051C 2CE2              ldi R18,300
+ 051E 31E0              ldi R19,1
+ 0520 0CE2              ldi R16,300
+ 0522 11E0              ldi R17,1
+ 0524 0EDE              xcall _action_set
+ 0526                   .dbline 182
+ 0526           ; break; //×óºóÌ§½Å                                                                                #####
+ 0526 B4C0              xjmp L28
+ 0528           L46:
+ 0528                   .dbline 184
+ 0528           ; case 17:
+ 0528           ; action_set(300,300,0,0,200,200,50);
+ 0528 82E3              ldi R24,50
+ 052A 90E0              ldi R25,0
+ 052C 9987              std y+9,R25
+ 052E 8887              std y+8,R24
+ 0530 88EC              ldi R24,200
+ 0532 9F83              std y+7,R25
+ 0534 8E83              std y+6,R24
+ 0536 9D83              std y+5,R25
+ 0538 8C83              std y+4,R24
+ 053A 2224              clr R2
+ 053C 3324              clr R3
+ 053E 3B82              std y+3,R3
+ 0540 2A82              std y+2,R2
+ 0542 3982              std y+1,R3
+ 0544 2882              std y+0,R2
+ 0546 2CE2              ldi R18,300
+ 0548 31E0              ldi R19,1
+ 054A 0CE2              ldi R16,300
+ 054C 11E0              ldi R17,1
+ 054E F9DD              xcall _action_set
+ 0550                   .dbline 185
+ 0550           ; break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ##### 
+ 0550 9FC0              xjmp L28
+ 0552           L47:
+ 0552                   .dbline 187
+ 0552           ; case 18:
+ 0552           ; action_set(400,400,-100,-150,300,300,50);
+ 0552 82E3              ldi R24,50
+ 0554 90E0              ldi R25,0
+ 0556 9987              std y+9,R25
+ 0558 8887              std y+8,R24
+ 055A 8CE2              ldi R24,300
+ 055C 91E0              ldi R25,1
+ 055E 9F83              std y+7,R25
+ 0560 8E83              std y+6,R24
+ 0562 9D83              std y+5,R25
+ 0564 8C83              std y+4,R24
+ 0566 8AE6              ldi R24,-150
+ 0568 9FEF              ldi R25,-1
+ 056A 9B83              std y+3,R25
+ 056C 8A83              std y+2,R24
+ 056E 8CE9              ldi R24,156
+ 0570 9983              std y+1,R25
+ 0572 8883              std y+0,R24
+ 0574 20E9              ldi R18,400
+ 0576 31E0              ldi R19,1
+ 0578 00E9              ldi R16,400
+ 057A 11E0              ldi R17,1
+ 057C E2DD              xcall _action_set
+ 057E                   .dbline 188
+ 057E           ; break; //½Å×óÇã                                                                       #####
+ 057E 88C0              xjmp L28
+ 0580           L48:
+ 0580                   .dbline 190
+ 0580           ; case 19:
+ 0580           ; action_set(0,0,-200,-150,300,600,50);
+ 0580 82E3              ldi R24,50
+ 0582 90E0              ldi R25,0
+ 0584 9987              std y+9,R25
+ 0586 8887              std y+8,R24
+ 0588 88E5              ldi R24,600
+ 058A 92E0              ldi R25,2
+ 058C 9F83              std y+7,R25
+ 058E 8E83              std y+6,R24
+ 0590 8CE2              ldi R24,300
+ 0592 91E0              ldi R25,1
+ 0594 9D83              std y+5,R25
+ 0596 8C83              std y+4,R24
+ 0598 8AE6              ldi R24,-150
+ 059A 9FEF              ldi R25,-1
+ 059C 9B83              std y+3,R25
+ 059E 8A83              std y+2,R24
+ 05A0 88E3              ldi R24,56
+ 05A2 9983              std y+1,R25
+ 05A4 8883              std y+0,R24
+ 05A6 2227              clr R18
+ 05A8 3327              clr R19
+ 05AA 0027              clr R16
+ 05AC 1127              clr R17
+ 05AE C9DD              xcall _action_set
+ 05B0                   .dbline 191
+ 05B0           ; break; //½Å×óÇã                                                                       #####
+ 05B0 6FC0              xjmp L28
+ 05B2           L49:
+ 05B2                   .dbline 193
+ 05B2           ; case 20:
+ 05B2           ; action_set(0,0,-200,0,0,0,50);
+ 05B2 82E3              ldi R24,50
+ 05B4 90E0              ldi R25,0
+ 05B6 9987              std y+9,R25
+ 05B8 8887              std y+8,R24
+ 05BA 2224              clr R2
+ 05BC 3324              clr R3
+ 05BE 3F82              std y+7,R3
+ 05C0 2E82              std y+6,R2
+ 05C2 3D82              std y+5,R3
+ 05C4 2C82              std y+4,R2
+ 05C6 3B82              std y+3,R3
+ 05C8 2A82              std y+2,R2
+ 05CA 88E3              ldi R24,-200
+ 05CC 9FEF              ldi R25,-1
+ 05CE 9983              std y+1,R25
+ 05D0 8883              std y+0,R24
+ 05D2 2227              clr R18
+ 05D4 3327              clr R19
+ 05D6 0027              clr R16
+ 05D8 1127              clr R17
+ 05DA B3DD              xcall _action_set
+ 05DC                   .dbline 194
+ 05DC           ; break; //×ó»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0           #####
+ 05DC 59C0              xjmp L28
+ 05DE           L50:
+ 05DE                   .dbline 196
+ 05DE           ; case 21:
+ 05DE           ; action_set(50,200,200,0,0,300,300);
+ 05DE 8CE2              ldi R24,300
+ 05E0 91E0              ldi R25,1
+ 05E2 9987              std y+9,R25
+ 05E4 8887              std y+8,R24
+ 05E6 9F83              std y+7,R25
+ 05E8 8E83              std y+6,R24
+ 05EA 2224              clr R2
+ 05EC 3324              clr R3
+ 05EE 3D82              std y+5,R3
+ 05F0 2C82              std y+4,R2
+ 05F2 3B82              std y+3,R3
+ 05F4 2A82              std y+2,R2
+ 05F6 88EC              ldi R24,200
+ 05F8 90E0              ldi R25,0
+ 05FA 9983              std y+1,R25
+ 05FC 8883              std y+0,R24
+ 05FE 28EC              ldi R18,200
+ 0600 30E0              ldi R19,0
+ 0602 02E3              ldi R16,50
+ 0604 10E0              ldi R17,0
+ 0606 9DDD              xcall _action_set
+ 0608                   .dbline 197
+ 0608           ; break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ##### 
+ 0608 43C0              xjmp L28
+ 060A           L51:
+ 060A                   .dbline 199
+ 060A           ; case 22:
+ 060A           ; action_set(300,300,-150,-100,400,400,50);
+ 060A 82E3              ldi R24,50
+ 060C 90E0              ldi R25,0
+ 060E 9987              std y+9,R25
+ 0610 8887              std y+8,R24
+ 0612 80E9              ldi R24,400
+ 0614 91E0              ldi R25,1
+ 0616 9F83              std y+7,R25
+ 0618 8E83              std y+6,R24
+ 061A 9D83              std y+5,R25
+ 061C 8C83              std y+4,R24
+ 061E 8CE9              ldi R24,-100
+ 0620 9FEF              ldi R25,-1
+ 0622 9B83              std y+3,R25
+ 0624 8A83              std y+2,R24
+ 0626 8AE6              ldi R24,106
+ 0628 9983              std y+1,R25
+ 062A 8883              std y+0,R24
+ 062C 2CE2              ldi R18,300
+ 062E 31E0              ldi R19,1
+ 0630 0CE2              ldi R16,300
+ 0632 11E0              ldi R17,1
+ 0634 86DD              xcall _action_set
+ 0636                   .dbline 200
+ 0636           ; break; //½Å×óÇã                                                                       #####
+ 0636 2CC0              xjmp L28
+ 0638           L52:
+ 0638                   .dbline 202
+ 0638           ; case 23:
+ 0638           ; action_set(600,300,-150,-200,0,0,50);
+ 0638 82E3              ldi R24,50
+ 063A 90E0              ldi R25,0
+ 063C 9987              std y+9,R25
+ 063E 8887              std y+8,R24
+ 0640 2224              clr R2
+ 0642 3324              clr R3
+ 0644 3F82              std y+7,R3
+ 0646 2E82              std y+6,R2
+ 0648 3D82              std y+5,R3
+ 064A 2C82              std y+4,R2
+ 064C 88E3              ldi R24,-200
+ 064E 9FEF              ldi R25,-1
+ 0650 9B83              std y+3,R25
+ 0652 8A83              std y+2,R24
+ 0654 8AE6              ldi R24,106
+ 0656 9983              std y+1,R25
+ 0658 8883              std y+0,R24
+ 065A 2CE2              ldi R18,300
+ 065C 31E0              ldi R19,1
+ 065E 08E5              ldi R16,600
+ 0660 12E0              ldi R17,2
+ 0662 6FDD              xcall _action_set
+ 0664                   .dbline 203
+ 0664           ; break; //½Å×óÇã                                                                       #####
+ 0664 15C0              xjmp L28
+ 0666           L53:
+ 0666                   .dbline 205
+ 0666           ; case 24:
+ 0666           ; action_set(0,0,0,-200,0,0,50);
+ 0666 82E3              ldi R24,50
+ 0668 90E0              ldi R25,0
+ 066A 9987              std y+9,R25
+ 066C 8887              std y+8,R24
+ 066E 2224              clr R2
+ 0670 3324              clr R3
+ 0672 3F82              std y+7,R3
+ 0674 2E82              std y+6,R2
+ 0676 3D82              std y+5,R3
+ 0678 2C82              std y+4,R2
+ 067A 88E3              ldi R24,-200
+ 067C 9FEF              ldi R25,-1
+ 067E 9B83              std y+3,R25
+ 0680 8A83              std y+2,R24
+ 0682 3982              std y+1,R3
+ 0684 2882              std y+0,R2
+ 0686 2227              clr R18
+ 0688 3327              clr R19
+ 068A 0027              clr R16
+ 068C 1127              clr R17
+ 068E 59DD              xcall _action_set
+ 0690                   .dbline 206
+ 0690           ; break; //×ó»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0           #####
+ 0690           L27:
+ 0690           L28:
+ 0690                   .dbline -2
+ 0690           L26:
+ 0690                   .dbline 0 ; func end
+ 0690 2A96              adiw R28,10
+ 0692 5991              ld R21,y+
+ 0694 4991              ld R20,y+
+ 0696 0895              ret
+ 0698                   .dbsym r number 20 I
+ 0698                   .dbend
+ 0698                   .dbfunc e action_series_do _action_series_do fV
+                        .even
+ 0698           _action_series_do::
+ 0698 4A93              st -y,R20
+ 069A 5A93              st -y,R21
+ 069C                   .dbline -1
+ 069C                   .dbline 213
+ 069C           ;                               
+ 069C           ; }
+ 069C           ; }
+ 069C           ; 
+ 069C           ; 
+ 069C           ; void action_series_do()
+ 069C           ; {switch(action_series_number)
+ 069C                   .dbline 213
+ 069C 20900200          lds R2,_action_series_number
+ 06A0 30900300          lds R3,_action_series_number+1
+ 06A4 C101              movw R24,R2
+ 06A6 8130              cpi R24,1
+ 06A8 E0E0              ldi R30,0
+ 06AA 9E07              cpc R25,R30
+ 06AC 09F4              brne X93
+ 06AE 2EC0              xjmp L58
+ 06B0           X93:
+ 06B0           X10:
+ 06B0 8230              cpi R24,2
+ 06B2 E0E0              ldi R30,0
+ 06B4 9E07              cpc R25,R30
+ 06B6 09F4              brne X94
+ 06B8 87C0              xjmp L72
+ 06BA           X94:
+ 06BA           X11:
+ 06BA 8330              cpi R24,3
+ 06BC E0E0              ldi R30,0
+ 06BE 9E07              cpc R25,R30
+ 06C0 09F4              brne X95
+ 06C2 D7C0              xjmp L85
+ 06C4           X95:
+ 06C4           X12:
+ 06C4 8430              cpi R24,4
+ 06C6 E0E0              ldi R30,0
+ 06C8 9E07              cpc R25,R30
+ 06CA 09F4              brne X96
+ 06CC 2FC1              xjmp L99
+ 06CE           X96:
+ 06CE           X13:
+ 06CE 8530              cpi R24,5
+ 06D0 E0E0              ldi R30,0
+ 06D2 9E07              cpc R25,R30
+ 06D4 09F4              brne X97
+ 06D6 7FC1              xjmp L112
+ 06D8           X97:
+ 06D8           X14:
+ 06D8 8630              cpi R24,6
+ 06DA E0E0              ldi R30,0
+ 06DC 9E07              cpc R25,R30
+ 06DE 09F4              brne X98
+ 06E0 A7C1              xjmp L120
+ 06E2           X98:
+ 06E2           X15:
+ 06E2 8730              cpi R24,7
+ 06E4 E0E0              ldi R30,0
+ 06E6 9E07              cpc R25,R30
+ 06E8 09F4              brne X99
+ 06EA CFC1              xjmp L128
+ 06EC           X99:
+ 06EC           X16:
+ 06EC 8830              cpi R24,8
+ 06EE E0E0              ldi R30,0
+ 06F0 9E07              cpc R25,R30
+ 06F2 09F4              brne X100
+ 06F4 F7C1              xjmp L136
+ 06F6           X100:
+ 06F6           X17:
+ 06F6 8930              cpi R24,9
+ 06F8 E0E0              ldi R30,0
+ 06FA 9E07              cpc R25,R30
+ 06FC 09F4              brne X101
+ 06FE 1FC2              xjmp L144
+ 0700           X101:
+ 0700           X18:
+ 0700 8A30              cpi R24,10
+ 0702 E0E0              ldi R30,0
+ 0704 9E07              cpc R25,R30
+ 0706 09F4              brne X102
+ 0708 4FC2              xjmp L153
+ 070A           X102:
+ 070A           X19:
+ 070A 72C2              xjmp L56
+ 070C           L58:
+ 070C                   .dbline 216
+ 070C           ; {       
+ 070C           ;       case 1:
+ 070C           ;       {switch(action_series_step)
+ 070C                   .dbline 216
+ 070C 20900000          lds R2,_action_series_step
+ 0710 30900100          lds R3,_action_series_step+1
+ 0714 C101              movw R24,R2
+ 0716 8130              cpi R24,1
+ 0718 E0E0              ldi R30,0
+ 071A 9E07              cpc R25,R30
+ 071C 49F1              breq L61
+ 071E           X20:
+ 071E 8230              cpi R24,2
+ 0720 E0E0              ldi R30,0
+ 0722 9E07              cpc R25,R30
+ 0724 49F1              breq L62
+ 0726           X21:
+ 0726 8330              cpi R24,3
+ 0728 E0E0              ldi R30,0
+ 072A 9E07              cpc R25,R30
+ 072C 49F1              breq L63
+ 072E           X22:
+ 072E 8430              cpi R24,4
+ 0730 E0E0              ldi R30,0
+ 0732 9E07              cpc R25,R30
+ 0734 49F1              breq L64
+ 0736           X23:
+ 0736 8530              cpi R24,5
+ 0738 E0E0              ldi R30,0
+ 073A 9E07              cpc R25,R30
+ 073C 49F1              breq L65
+ 073E           X24:
+ 073E 8630              cpi R24,6
+ 0740 E0E0              ldi R30,0
+ 0742 9E07              cpc R25,R30
+ 0744 49F1              breq L66
+ 0746           X25:
+ 0746 8730              cpi R24,7
+ 0748 E0E0              ldi R30,0
+ 074A 9E07              cpc R25,R30
+ 074C 49F1              breq L67
+ 074E           X26:
+ 074E 8830              cpi R24,8
+ 0750 E0E0              ldi R30,0
+ 0752 9E07              cpc R25,R30
+ 0754 49F1              breq L68
+ 0756           X27:
+ 0756 8930              cpi R24,9
+ 0758 E0E0              ldi R30,0
+ 075A 9E07              cpc R25,R30
+ 075C 49F1              breq L69
+ 075E           X28:
+ 075E 8A30              cpi R24,10
+ 0760 E0E0              ldi R30,0
+ 0762 9E07              cpc R25,R30
+ 0764 49F1              breq L70
+ 0766           X29:
+ 0766 8B30              cpi R24,11
+ 0768 E0E0              ldi R30,0
+ 076A 9E07              cpc R25,R30
+ 076C 49F1              breq L71
+ 076E           X30:
+ 076E 40C2              xjmp L57
+ 0770           L61:
+ 0770                   .dbline 217
+ 0770           ;               {case 1 : {action_base(20);break;} 
+ 0770                   .dbline 217
+ 0770 04E1              ldi R16,20
+ 0772 10E0              ldi R17,0
+ 0774 3CDD              xcall _action_base
+ 0776                   .dbline 217
+ 0776 3CC2              xjmp L57
+ 0778           L62:
+ 0778                   .dbline 218
+ 0778           ;        case 2 : {action_base(10);break;}
+ 0778                   .dbline 218
+ 0778 0AE0              ldi R16,10
+ 077A 10E0              ldi R17,0
+ 077C 38DD              xcall _action_base
+ 077E                   .dbline 218
+ 077E 38C2              xjmp L57
+ 0780           L63:
+ 0780                   .dbline 219
+ 0780           ;                case 3 : {action_base(9);break;}
+ 0780                   .dbline 219
+ 0780 09E0              ldi R16,9
+ 0782 10E0              ldi R17,0
+ 0784 34DD              xcall _action_base
+ 0786                   .dbline 219
+ 0786 34C2              xjmp L57
+ 0788           L64:
+ 0788                   .dbline 220
+ 0788           ;                case 4 : {action_base(8);break;}
+ 0788                   .dbline 220
+ 0788 08E0              ldi R16,8
+ 078A 10E0              ldi R17,0
+ 078C 30DD              xcall _action_base
+ 078E                   .dbline 220
+ 078E 30C2              xjmp L57
+ 0790           L65:
+ 0790                   .dbline 221
+ 0790           ;                case 5 : {action_base(7);break;}
+ 0790                   .dbline 221
+ 0790 07E0              ldi R16,7
+ 0792 10E0              ldi R17,0
+ 0794 2CDD              xcall _action_base
+ 0796                   .dbline 221
+ 0796 2CC2              xjmp L57
+ 0798           L66:
+ 0798                   .dbline 222
+ 0798           ;                case 6 : {action_base(6);break;}
+ 0798                   .dbline 222
+ 0798 06E0              ldi R16,6
+ 079A 10E0              ldi R17,0
+ 079C 28DD              xcall _action_base
+ 079E                   .dbline 222
+ 079E 28C2              xjmp L57
+ 07A0           L67:
+ 07A0                   .dbline 223
+ 07A0           ;                case 7 : {action_base(5);break;}
+ 07A0                   .dbline 223
+ 07A0 05E0              ldi R16,5
+ 07A2 10E0              ldi R17,0
+ 07A4 24DD              xcall _action_base
+ 07A6                   .dbline 223
+ 07A6 24C2              xjmp L57
+ 07A8           L68:
+ 07A8                   .dbline 224
+ 07A8           ;                case 8 : {action_base(4);break;}
+ 07A8                   .dbline 224
+ 07A8 04E0              ldi R16,4
+ 07AA 10E0              ldi R17,0
+ 07AC 20DD              xcall _action_base
+ 07AE                   .dbline 224
+ 07AE 20C2              xjmp L57
+ 07B0           L69:
+ 07B0                   .dbline 225
+ 07B0           ;                case 9 : {action_base(3);break;}
+ 07B0                   .dbline 225
+ 07B0 03E0              ldi R16,3
+ 07B2 10E0              ldi R17,0
+ 07B4 1CDD              xcall _action_base
+ 07B6                   .dbline 225
+ 07B6 1CC2              xjmp L57
+ 07B8           L70:
+ 07B8                   .dbline 226
+ 07B8           ;                case 10 : {action_base(2);break;}
+ 07B8                   .dbline 226
+ 07B8 02E0              ldi R16,2
+ 07BA 10E0              ldi R17,0
+ 07BC 18DD              xcall _action_base
+ 07BE                   .dbline 226
+ 07BE 18C2              xjmp L57
+ 07C0           L71:
+ 07C0                   .dbline 227
+ 07C0           ;                case 11 : {action_base(1);break;}
+ 07C0                   .dbline 227
+ 07C0 01E0              ldi R16,1
+ 07C2 10E0              ldi R17,0
+ 07C4 14DD              xcall _action_base
+ 07C6                   .dbline 227
+ 07C6                   .dbline 228
+ 07C6           ;               };break;} 
+ 07C6                   .dbline 228
+ 07C6 14C2              xjmp L57
+ 07C8           L72:
+ 07C8                   .dbline 230
+ 07C8           ;        case 2:
+ 07C8           ;       {switch(action_series_step)
+ 07C8                   .dbline 230
+ 07C8 40910000          lds R20,_action_series_step
+ 07CC 50910100          lds R21,_action_series_step+1
+ 07D0 4130              cpi R20,1
+ 07D2 E0E0              ldi R30,0
+ 07D4 5E07              cpc R21,R30
+ 07D6 29F1              breq L75
+ 07D8           X31:
+ 07D8 4230              cpi R20,2
+ 07DA E0E0              ldi R30,0
+ 07DC 5E07              cpc R21,R30
+ 07DE 29F1              breq L76
+ 07E0           X32:
+ 07E0 4330              cpi R20,3
+ 07E2 E0E0              ldi R30,0
+ 07E4 5E07              cpc R21,R30
+ 07E6 29F1              breq L77
+ 07E8           X33:
+ 07E8 4430              cpi R20,4
+ 07EA E0E0              ldi R30,0
+ 07EC 5E07              cpc R21,R30
+ 07EE 29F1              breq L78
+ 07F0           X34:
+ 07F0 4530              cpi R20,5
+ 07F2 E0E0              ldi R30,0
+ 07F4 5E07              cpc R21,R30
+ 07F6 29F1              breq L79
+ 07F8           X35:
+ 07F8 4630              cpi R20,6
+ 07FA E0E0              ldi R30,0
+ 07FC 5E07              cpc R21,R30
+ 07FE 29F1              breq L80
+ 0800           X36:
+ 0800 4730              cpi R20,7
+ 0802 E0E0              ldi R30,0
+ 0804 5E07              cpc R21,R30
+ 0806 29F1              breq L81
+ 0808           X37:
+ 0808 4830              cpi R20,8
+ 080A E0E0              ldi R30,0
+ 080C 5E07              cpc R21,R30
+ 080E 29F1              breq L82
+ 0810           X38:
+ 0810 4930              cpi R20,9
+ 0812 E0E0              ldi R30,0
+ 0814 5E07              cpc R21,R30
+ 0816 29F1              breq L83
+ 0818           X39:
+ 0818 4A30              cpi R20,10
+ 081A E0E0              ldi R30,0
+ 081C 5E07              cpc R21,R30
+ 081E 29F1              breq L84
+ 0820           X40:
+ 0820 E7C1              xjmp L57
+ 0822           L75:
+ 0822                   .dbline 231
+ 0822           ;               {case 1 : {action_base(20);break;} 
+ 0822                   .dbline 231
+ 0822 04E1              ldi R16,20
+ 0824 10E0              ldi R17,0
+ 0826 E3DC              xcall _action_base
+ 0828                   .dbline 231
+ 0828 E3C1              xjmp L57
+ 082A           L76:
+ 082A                   .dbline 232
+ 082A           ;        case 2 : {action_base(10);break;}
+ 082A                   .dbline 232
+ 082A 0AE0              ldi R16,10
+ 082C 10E0              ldi R17,0
+ 082E DFDC              xcall _action_base
+ 0830                   .dbline 232
+ 0830 DFC1              xjmp L57
+ 0832           L77:
+ 0832                   .dbline 233
+ 0832           ;                case 3 : {action_base(9);break;}
+ 0832                   .dbline 233
+ 0832 09E0              ldi R16,9
+ 0834 10E0              ldi R17,0
+ 0836 DBDC              xcall _action_base
+ 0838                   .dbline 233
+ 0838 DBC1              xjmp L57
+ 083A           L78:
+ 083A                   .dbline 234
+ 083A           ;                case 4 : {action_base(8);break;}
+ 083A                   .dbline 234
+ 083A 08E0              ldi R16,8
+ 083C 10E0              ldi R17,0
+ 083E D7DC              xcall _action_base
+ 0840                   .dbline 234
+ 0840 D7C1              xjmp L57
+ 0842           L79:
+ 0842                   .dbline 235
+ 0842           ;                case 5 : {action_base(7);break;}
+ 0842                   .dbline 235
+ 0842 07E0              ldi R16,7
+ 0844 10E0              ldi R17,0
+ 0846 D3DC              xcall _action_base
+ 0848                   .dbline 235
+ 0848 D3C1              xjmp L57
+ 084A           L80:
+ 084A                   .dbline 236
+ 084A           ;                case 6 : {action_base(6);break;}
+ 084A                   .dbline 236
+ 084A 06E0              ldi R16,6
+ 084C 10E0              ldi R17,0
+ 084E CFDC              xcall _action_base
+ 0850                   .dbline 236
+ 0850 CFC1              xjmp L57
+ 0852           L81:
+ 0852                   .dbline 237
+ 0852           ;                case 7 : {action_base(5);break;}
+ 0852                   .dbline 237
+ 0852 05E0              ldi R16,5
+ 0854 10E0              ldi R17,0
+ 0856 CBDC              xcall _action_base
+ 0858                   .dbline 237
+ 0858 CBC1              xjmp L57
+ 085A           L82:
+ 085A                   .dbline 238
+ 085A           ;                case 8 : {action_base(4);break;}
+ 085A                   .dbline 238
+ 085A 04E0              ldi R16,4
+ 085C 10E0              ldi R17,0
+ 085E C7DC              xcall _action_base
+ 0860                   .dbline 238
+ 0860 C7C1              xjmp L57
+ 0862           L83:
+ 0862                   .dbline 239
+ 0862           ;                case 9 : {action_base(3);break;}
+ 0862                   .dbline 239
+ 0862 03E0              ldi R16,3
+ 0864 10E0              ldi R17,0
+ 0866 C3DC              xcall _action_base
+ 0868                   .dbline 239
+ 0868 C3C1              xjmp L57
+ 086A           L84:
+ 086A                   .dbline 240
+ 086A           ;                case 10 : {action_base(2);break;}
+ 086A                   .dbline 240
+ 086A 02E0              ldi R16,2
+ 086C 10E0              ldi R17,0
+ 086E BFDC              xcall _action_base
+ 0870                   .dbline 240
+ 0870                   .dbline 241
+ 0870           ;               };break;}
+ 0870                   .dbline 241
+ 0870 BFC1              xjmp L57
+ 0872           L85:
+ 0872                   .dbline 244
+ 0872           ; 
+ 0872           ;               case 3:
+ 0872           ;       {switch(action_series_step)
+ 0872                   .dbline 244
+ 0872 40910000          lds R20,_action_series_step
+ 0876 50910100          lds R21,_action_series_step+1
+ 087A 4130              cpi R20,1
+ 087C E0E0              ldi R30,0
+ 087E 5E07              cpc R21,R30
+ 0880 49F1              breq L88
+ 0882           X41:
+ 0882 4230              cpi R20,2
+ 0884 E0E0              ldi R30,0
+ 0886 5E07              cpc R21,R30
+ 0888 49F1              breq L89
+ 088A           X42:
+ 088A 4330              cpi R20,3
+ 088C E0E0              ldi R30,0
+ 088E 5E07              cpc R21,R30
+ 0890 49F1              breq L90
+ 0892           X43:
+ 0892 4430              cpi R20,4
+ 0894 E0E0              ldi R30,0
+ 0896 5E07              cpc R21,R30
+ 0898 49F1              breq L91
+ 089A           X44:
+ 089A 4530              cpi R20,5
+ 089C E0E0              ldi R30,0
+ 089E 5E07              cpc R21,R30
+ 08A0 49F1              breq L92
+ 08A2           X45:
+ 08A2 4630              cpi R20,6
+ 08A4 E0E0              ldi R30,0
+ 08A6 5E07              cpc R21,R30
+ 08A8 49F1              breq L93
+ 08AA           X46:
+ 08AA 4730              cpi R20,7
+ 08AC E0E0              ldi R30,0
+ 08AE 5E07              cpc R21,R30
+ 08B0 49F1              breq L94
+ 08B2           X47:
+ 08B2 4830              cpi R20,8
+ 08B4 E0E0              ldi R30,0
+ 08B6 5E07              cpc R21,R30
+ 08B8 49F1              breq L95
+ 08BA           X48:
+ 08BA 4930              cpi R20,9
+ 08BC E0E0              ldi R30,0
+ 08BE 5E07              cpc R21,R30
+ 08C0 49F1              breq L96
+ 08C2           X49:
+ 08C2 4A30              cpi R20,10
+ 08C4 E0E0              ldi R30,0
+ 08C6 5E07              cpc R21,R30
+ 08C8 49F1              breq L97
+ 08CA           X50:
+ 08CA 4B30              cpi R20,11
+ 08CC E0E0              ldi R30,0
+ 08CE 5E07              cpc R21,R30
+ 08D0 49F1              breq L98
+ 08D2           X51:
+ 08D2 8EC1              xjmp L57
+ 08D4           L88:
+ 08D4                   .dbline 245
+ 08D4           ;               {case 1 : {action_base(20);break;}
+ 08D4                   .dbline 245
+ 08D4 04E1              ldi R16,20
+ 08D6 10E0              ldi R17,0
+ 08D8 8ADC              xcall _action_base
+ 08DA                   .dbline 245
+ 08DA 8AC1              xjmp L57
+ 08DC           L89:
+ 08DC                   .dbline 246
+ 08DC           ;                case 2 : {action_base(19);break;}
+ 08DC                   .dbline 246
+ 08DC 03E1              ldi R16,19
+ 08DE 10E0              ldi R17,0
+ 08E0 86DC              xcall _action_base
+ 08E2                   .dbline 246
+ 08E2 86C1              xjmp L57
+ 08E4           L90:
+ 08E4                   .dbline 247
+ 08E4           ;                case 3 : {action_base(18);break;}
+ 08E4                   .dbline 247
+ 08E4 02E1              ldi R16,18
+ 08E6 10E0              ldi R17,0
+ 08E8 82DC              xcall _action_base
+ 08EA                   .dbline 247
+ 08EA 82C1              xjmp L57
+ 08EC           L91:
+ 08EC                   .dbline 248
+ 08EC           ;                case 4 : {action_base(17);break;}
+ 08EC                   .dbline 248
+ 08EC 01E1              ldi R16,17
+ 08EE 10E0              ldi R17,0
+ 08F0 7EDC              xcall _action_base
+ 08F2                   .dbline 248
+ 08F2 7EC1              xjmp L57
+ 08F4           L92:
+ 08F4                   .dbline 249
+ 08F4           ;                case 5 : {action_base(16);break;}
+ 08F4                   .dbline 249
+ 08F4 00E1              ldi R16,16
+ 08F6 10E0              ldi R17,0
+ 08F8 7ADC              xcall _action_base
+ 08FA                   .dbline 249
+ 08FA 7AC1              xjmp L57
+ 08FC           L93:
+ 08FC                   .dbline 250
+ 08FC           ;                case 6 : {action_base(15);break;}
+ 08FC                   .dbline 250
+ 08FC 0FE0              ldi R16,15
+ 08FE 10E0              ldi R17,0
+ 0900 76DC              xcall _action_base
+ 0902                   .dbline 250
+ 0902 76C1              xjmp L57
+ 0904           L94:
+ 0904                   .dbline 251
+ 0904           ;                case 7 : {action_base(14);break;}
+ 0904                   .dbline 251
+ 0904 0EE0              ldi R16,14
+ 0906 10E0              ldi R17,0
+ 0908 72DC              xcall _action_base
+ 090A                   .dbline 251
+ 090A 72C1              xjmp L57
+ 090C           L95:
+ 090C                   .dbline 252
+ 090C           ;                case 8 : {action_base(13);break;}
+ 090C                   .dbline 252
+ 090C 0DE0              ldi R16,13
+ 090E 10E0              ldi R17,0
+ 0910 6EDC              xcall _action_base
+ 0912                   .dbline 252
+ 0912 6EC1              xjmp L57
+ 0914           L96:
+ 0914                   .dbline 253
+ 0914           ;                case 9 : {action_base(12);break;}
+ 0914                   .dbline 253
+ 0914 0CE0              ldi R16,12
+ 0916 10E0              ldi R17,0
+ 0918 6ADC              xcall _action_base
+ 091A                   .dbline 253
+ 091A 6AC1              xjmp L57
+ 091C           L97:
+ 091C                   .dbline 254
+ 091C           ;                case 10 : {action_base(11);break;}
+ 091C                   .dbline 254
+ 091C 0BE0              ldi R16,11
+ 091E 10E0              ldi R17,0
+ 0920 66DC              xcall _action_base
+ 0922                   .dbline 254
+ 0922 66C1              xjmp L57
+ 0924           L98:
+ 0924                   .dbline 255
+ 0924           ;                case 11 : {action_base(1);break;}
+ 0924                   .dbline 255
+ 0924 01E0              ldi R16,1
+ 0926 10E0              ldi R17,0
+ 0928 62DC              xcall _action_base
+ 092A                   .dbline 255
+ 092A                   .dbline 256
+ 092A           ;               };break;}
+ 092A                   .dbline 256
+ 092A 62C1              xjmp L57
+ 092C           L99:
+ 092C                   .dbline 258
+ 092C           ;               case 4:
+ 092C           ;       {switch(action_series_step)
+ 092C                   .dbline 258
+ 092C 40910000          lds R20,_action_series_step
+ 0930 50910100          lds R21,_action_series_step+1
+ 0934 4130              cpi R20,1
+ 0936 E0E0              ldi R30,0
+ 0938 5E07              cpc R21,R30
+ 093A 29F1              breq L102
+ 093C           X52:
+ 093C 4230              cpi R20,2
+ 093E E0E0              ldi R30,0
+ 0940 5E07              cpc R21,R30
+ 0942 29F1              breq L103
+ 0944           X53:
+ 0944 4330              cpi R20,3
+ 0946 E0E0              ldi R30,0
+ 0948 5E07              cpc R21,R30
+ 094A 29F1              breq L104
+ 094C           X54:
+ 094C 4430              cpi R20,4
+ 094E E0E0              ldi R30,0
+ 0950 5E07              cpc R21,R30
+ 0952 29F1              breq L105
+ 0954           X55:
+ 0954 4530              cpi R20,5
+ 0956 E0E0              ldi R30,0
+ 0958 5E07              cpc R21,R30
+ 095A 29F1              breq L106
+ 095C           X56:
+ 095C 4630              cpi R20,6
+ 095E E0E0              ldi R30,0
+ 0960 5E07              cpc R21,R30
+ 0962 29F1              breq L107
+ 0964           X57:
+ 0964 4730              cpi R20,7
+ 0966 E0E0              ldi R30,0
+ 0968 5E07              cpc R21,R30
+ 096A 29F1              breq L108
+ 096C           X58:
+ 096C 4830              cpi R20,8
+ 096E E0E0              ldi R30,0
+ 0970 5E07              cpc R21,R30
+ 0972 29F1              breq L109
+ 0974           X59:
+ 0974 4930              cpi R20,9
+ 0976 E0E0              ldi R30,0
+ 0978 5E07              cpc R21,R30
+ 097A 29F1              breq L110
+ 097C           X60:
+ 097C 4A30              cpi R20,10
+ 097E E0E0              ldi R30,0
+ 0980 5E07              cpc R21,R30
+ 0982 29F1              breq L111
+ 0984           X61:
+ 0984 35C1              xjmp L57
+ 0986           L102:
+ 0986                   .dbline 259
+ 0986           ;               {case 1 : {action_base(20);break;}
+ 0986                   .dbline 259
+ 0986 04E1              ldi R16,20
+ 0988 10E0              ldi R17,0
+ 098A 31DC              xcall _action_base
+ 098C                   .dbline 259
+ 098C 31C1              xjmp L57
+ 098E           L103:
+ 098E                   .dbline 260
+ 098E           ;                case 2 : {action_base(19);break;}
+ 098E                   .dbline 260
+ 098E 03E1              ldi R16,19
+ 0990 10E0              ldi R17,0
+ 0992 2DDC              xcall _action_base
+ 0994                   .dbline 260
+ 0994 2DC1              xjmp L57
+ 0996           L104:
+ 0996                   .dbline 261
+ 0996           ;                case 3 : {action_base(18);break;}
+ 0996                   .dbline 261
+ 0996 02E1              ldi R16,18
+ 0998 10E0              ldi R17,0
+ 099A 29DC              xcall _action_base
+ 099C                   .dbline 261
+ 099C 29C1              xjmp L57
+ 099E           L105:
+ 099E                   .dbline 262
+ 099E           ;                case 4 : {action_base(17);break;}
+ 099E                   .dbline 262
+ 099E 01E1              ldi R16,17
+ 09A0 10E0              ldi R17,0
+ 09A2 25DC              xcall _action_base
+ 09A4                   .dbline 262
+ 09A4 25C1              xjmp L57
+ 09A6           L106:
+ 09A6                   .dbline 263
+ 09A6           ;                case 5 : {action_base(16);break;}
+ 09A6                   .dbline 263
+ 09A6 00E1              ldi R16,16
+ 09A8 10E0              ldi R17,0
+ 09AA 21DC              xcall _action_base
+ 09AC                   .dbline 263
+ 09AC 21C1              xjmp L57
+ 09AE           L107:
+ 09AE                   .dbline 264
+ 09AE           ;                case 6 : {action_base(15);break;}
+ 09AE                   .dbline 264
+ 09AE 0FE0              ldi R16,15
+ 09B0 10E0              ldi R17,0
+ 09B2 1DDC              xcall _action_base
+ 09B4                   .dbline 264
+ 09B4 1DC1              xjmp L57
+ 09B6           L108:
+ 09B6                   .dbline 265
+ 09B6           ;                case 7 : {action_base(14);break;}
+ 09B6                   .dbline 265
+ 09B6 0EE0              ldi R16,14
+ 09B8 10E0              ldi R17,0
+ 09BA 19DC              xcall _action_base
+ 09BC                   .dbline 265
+ 09BC 19C1              xjmp L57
+ 09BE           L109:
+ 09BE                   .dbline 266
+ 09BE           ;                case 8 : {action_base(13);break;}
+ 09BE                   .dbline 266
+ 09BE 0DE0              ldi R16,13
+ 09C0 10E0              ldi R17,0
+ 09C2 15DC              xcall _action_base
+ 09C4                   .dbline 266
+ 09C4 15C1              xjmp L57
+ 09C6           L110:
+ 09C6                   .dbline 267
+ 09C6           ;                case 9 : {action_base(12);break;}
+ 09C6                   .dbline 267
+ 09C6 0CE0              ldi R16,12
+ 09C8 10E0              ldi R17,0
+ 09CA 11DC              xcall _action_base
+ 09CC                   .dbline 267
+ 09CC 11C1              xjmp L57
+ 09CE           L111:
+ 09CE                   .dbline 268
+ 09CE           ;                case 10 : {action_base(11);break;}
+ 09CE                   .dbline 268
+ 09CE 0BE0              ldi R16,11
+ 09D0 10E0              ldi R17,0
+ 09D2 0DDC              xcall _action_base
+ 09D4                   .dbline 268
+ 09D4                   .dbline 269
+ 09D4           ;               };break;}
+ 09D4                   .dbline 269
+ 09D4 0DC1              xjmp L57
+ 09D6           L112:
+ 09D6                   .dbline 271
+ 09D6           ;               case 5:
+ 09D6           ;       {switch(action_series_step)
+ 09D6                   .dbline 271
+ 09D6 40910000          lds R20,_action_series_step
+ 09DA 50910100          lds R21,_action_series_step+1
+ 09DE 4130              cpi R20,1
+ 09E0 E0E0              ldi R30,0
+ 09E2 5E07              cpc R21,R30
+ 09E4 89F0              breq L115
+ 09E6           X62:
+ 09E6 4230              cpi R20,2
+ 09E8 E0E0              ldi R30,0
+ 09EA 5E07              cpc R21,R30
+ 09EC 89F0              breq L116
+ 09EE           X63:
+ 09EE 4330              cpi R20,3
+ 09F0 E0E0              ldi R30,0
+ 09F2 5E07              cpc R21,R30
+ 09F4 89F0              breq L117
+ 09F6           X64:
+ 09F6 4430              cpi R20,4
+ 09F8 E0E0              ldi R30,0
+ 09FA 5E07              cpc R21,R30
+ 09FC 89F0              breq L118
+ 09FE           X65:
+ 09FE 4530              cpi R20,5
+ 0A00 E0E0              ldi R30,0
+ 0A02 5E07              cpc R21,R30
+ 0A04 89F0              breq L119
+ 0A06           X66:
+ 0A06 F4C0              xjmp L57
+ 0A08           L115:
+ 0A08                   .dbline 272
+ 0A08           ;               {case 1 : {action_base(0);break;}
+ 0A08                   .dbline 272
+ 0A08 0027              clr R16
+ 0A0A 1127              clr R17
+ 0A0C F0DB              xcall _action_base
+ 0A0E                   .dbline 272
+ 0A0E F0C0              xjmp L57
+ 0A10           L116:
+ 0A10                   .dbline 273
+ 0A10           ;                case 2 : {action_base(6);break;}
+ 0A10                   .dbline 273
+ 0A10 06E0              ldi R16,6
+ 0A12 10E0              ldi R17,0
+ 0A14 ECDB              xcall _action_base
+ 0A16                   .dbline 273
+ 0A16 ECC0              xjmp L57
+ 0A18           L117:
+ 0A18                   .dbline 274
+ 0A18           ;                case 3 : {action_base(5);break;}
+ 0A18                   .dbline 274
+ 0A18 05E0              ldi R16,5
+ 0A1A 10E0              ldi R17,0
+ 0A1C E8DB              xcall _action_base
+ 0A1E                   .dbline 274
+ 0A1E E8C0              xjmp L57
+ 0A20           L118:
+ 0A20                   .dbline 275
+ 0A20           ;                case 4 : {action_base(4);break;}
+ 0A20                   .dbline 275
+ 0A20 04E0              ldi R16,4
+ 0A22 10E0              ldi R17,0
+ 0A24 E4DB              xcall _action_base
+ 0A26                   .dbline 275
+ 0A26 E4C0              xjmp L57
+ 0A28           L119:
+ 0A28                   .dbline 276
+ 0A28           ;                case 5 : {action_base(0);break;}
+ 0A28                   .dbline 276
+ 0A28 0027              clr R16
+ 0A2A 1127              clr R17
+ 0A2C E0DB              xcall _action_base
+ 0A2E                   .dbline 276
+ 0A2E                   .dbline 277
+ 0A2E           ;               };break;}
+ 0A2E                   .dbline 277
+ 0A2E E0C0              xjmp L57
+ 0A30           L120:
+ 0A30                   .dbline 279
+ 0A30           ;               case 6:
+ 0A30           ;       {switch(action_series_step)
+ 0A30                   .dbline 279
+ 0A30 40910000          lds R20,_action_series_step
+ 0A34 50910100          lds R21,_action_series_step+1
+ 0A38 4130              cpi R20,1
+ 0A3A E0E0              ldi R30,0
+ 0A3C 5E07              cpc R21,R30
+ 0A3E 89F0              breq L123
+ 0A40           X67:
+ 0A40 4230              cpi R20,2
+ 0A42 E0E0              ldi R30,0
+ 0A44 5E07              cpc R21,R30
+ 0A46 89F0              breq L124
+ 0A48           X68:
+ 0A48 4330              cpi R20,3
+ 0A4A E0E0              ldi R30,0
+ 0A4C 5E07              cpc R21,R30
+ 0A4E 89F0              breq L125
+ 0A50           X69:
+ 0A50 4430              cpi R20,4
+ 0A52 E0E0              ldi R30,0
+ 0A54 5E07              cpc R21,R30
+ 0A56 89F0              breq L126
+ 0A58           X70:
+ 0A58 4530              cpi R20,5
+ 0A5A E0E0              ldi R30,0
+ 0A5C 5E07              cpc R21,R30
+ 0A5E 89F0              breq L127
+ 0A60           X71:
+ 0A60 C7C0              xjmp L57
+ 0A62           L123:
+ 0A62                   .dbline 280
+ 0A62           ;               {case 1 : {action_base(0);break;}
+ 0A62                   .dbline 280
+ 0A62 0027              clr R16
+ 0A64 1127              clr R17
+ 0A66 C3DB              xcall _action_base
+ 0A68                   .dbline 280
+ 0A68 C3C0              xjmp L57
+ 0A6A           L124:
+ 0A6A                   .dbline 281
+ 0A6A           ;                case 2 : {action_base(10);break;}
+ 0A6A                   .dbline 281
+ 0A6A 0AE0              ldi R16,10
+ 0A6C 10E0              ldi R17,0
+ 0A6E BFDB              xcall _action_base
+ 0A70                   .dbline 281
+ 0A70 BFC0              xjmp L57
+ 0A72           L125:
+ 0A72                   .dbline 282
+ 0A72           ;                case 3 : {action_base(9);break;}
+ 0A72                   .dbline 282
+ 0A72 09E0              ldi R16,9
+ 0A74 10E0              ldi R17,0
+ 0A76 BBDB              xcall _action_base
+ 0A78                   .dbline 282
+ 0A78 BBC0              xjmp L57
+ 0A7A           L126:
+ 0A7A                   .dbline 283
+ 0A7A           ;                case 4 : {action_base(8);break;}
+ 0A7A                   .dbline 283
+ 0A7A 08E0              ldi R16,8
+ 0A7C 10E0              ldi R17,0
+ 0A7E B7DB              xcall _action_base
+ 0A80                   .dbline 283
+ 0A80 B7C0              xjmp L57
+ 0A82           L127:
+ 0A82                   .dbline 284
+ 0A82           ;                case 5 : {action_base(0);break;}
+ 0A82                   .dbline 284
+ 0A82 0027              clr R16
+ 0A84 1127              clr R17
+ 0A86 B3DB              xcall _action_base
+ 0A88                   .dbline 284
+ 0A88                   .dbline 285
+ 0A88           ;               };break;}
+ 0A88                   .dbline 285
+ 0A88 B3C0              xjmp L57
+ 0A8A           L128:
+ 0A8A                   .dbline 287
+ 0A8A           ;               case 7:
+ 0A8A           ;       {switch(action_series_step)
+ 0A8A                   .dbline 287
+ 0A8A 40910000          lds R20,_action_series_step
+ 0A8E 50910100          lds R21,_action_series_step+1
+ 0A92 4130              cpi R20,1
+ 0A94 E0E0              ldi R30,0
+ 0A96 5E07              cpc R21,R30
+ 0A98 89F0              breq L131
+ 0A9A           X72:
+ 0A9A 4230              cpi R20,2
+ 0A9C E0E0              ldi R30,0
+ 0A9E 5E07              cpc R21,R30
+ 0AA0 89F0              breq L132
+ 0AA2           X73:
+ 0AA2 4330              cpi R20,3
+ 0AA4 E0E0              ldi R30,0
+ 0AA6 5E07              cpc R21,R30
+ 0AA8 89F0              breq L133
+ 0AAA           X74:
+ 0AAA 4430              cpi R20,4
+ 0AAC E0E0              ldi R30,0
+ 0AAE 5E07              cpc R21,R30
+ 0AB0 89F0              breq L134
+ 0AB2           X75:
+ 0AB2 4530              cpi R20,5
+ 0AB4 E0E0              ldi R30,0
+ 0AB6 5E07              cpc R21,R30
+ 0AB8 89F0              breq L135
+ 0ABA           X76:
+ 0ABA 9AC0              xjmp L57
+ 0ABC           L131:
+ 0ABC                   .dbline 288
+ 0ABC           ;               {case 1 : {action_base(0);break;}
+ 0ABC                   .dbline 288
+ 0ABC 0027              clr R16
+ 0ABE 1127              clr R17
+ 0AC0 96DB              xcall _action_base
+ 0AC2                   .dbline 288
+ 0AC2 96C0              xjmp L57
+ 0AC4           L132:
+ 0AC4                   .dbline 289
+ 0AC4           ;                case 2 : {action_base(16);break;}
+ 0AC4                   .dbline 289
+ 0AC4 00E1              ldi R16,16
+ 0AC6 10E0              ldi R17,0
+ 0AC8 92DB              xcall _action_base
+ 0ACA                   .dbline 289
+ 0ACA 92C0              xjmp L57
+ 0ACC           L133:
+ 0ACC                   .dbline 290
+ 0ACC           ;                case 3 : {action_base(15);break;}
+ 0ACC                   .dbline 290
+ 0ACC 0FE0              ldi R16,15
+ 0ACE 10E0              ldi R17,0
+ 0AD0 8EDB              xcall _action_base
+ 0AD2                   .dbline 290
+ 0AD2 8EC0              xjmp L57
+ 0AD4           L134:
+ 0AD4                   .dbline 291
+ 0AD4           ;                case 4 : {action_base(14);break;}
+ 0AD4                   .dbline 291
+ 0AD4 0EE0              ldi R16,14
+ 0AD6 10E0              ldi R17,0
+ 0AD8 8ADB              xcall _action_base
+ 0ADA                   .dbline 291
+ 0ADA 8AC0              xjmp L57
+ 0ADC           L135:
+ 0ADC                   .dbline 292
+ 0ADC           ;                case 5 : {action_base(0);break;}
+ 0ADC                   .dbline 292
+ 0ADC 0027              clr R16
+ 0ADE 1127              clr R17
+ 0AE0 86DB              xcall _action_base
+ 0AE2                   .dbline 292
+ 0AE2                   .dbline 293
+ 0AE2           ;               };break;}
+ 0AE2                   .dbline 293
+ 0AE2 86C0              xjmp L57
+ 0AE4           L136:
+ 0AE4                   .dbline 295
+ 0AE4           ;               case 8:
+ 0AE4           ;       {switch(action_series_step)
+ 0AE4                   .dbline 295
+ 0AE4 40910000          lds R20,_action_series_step
+ 0AE8 50910100          lds R21,_action_series_step+1
+ 0AEC 4130              cpi R20,1
+ 0AEE E0E0              ldi R30,0
+ 0AF0 5E07              cpc R21,R30
+ 0AF2 89F0              breq L139
+ 0AF4           X77:
+ 0AF4 4230              cpi R20,2
+ 0AF6 E0E0              ldi R30,0
+ 0AF8 5E07              cpc R21,R30
+ 0AFA 89F0              breq L140
+ 0AFC           X78:
+ 0AFC 4330              cpi R20,3
+ 0AFE E0E0              ldi R30,0
+ 0B00 5E07              cpc R21,R30
+ 0B02 89F0              breq L141
+ 0B04           X79:
+ 0B04 4430              cpi R20,4
+ 0B06 E0E0              ldi R30,0
+ 0B08 5E07              cpc R21,R30
+ 0B0A 89F0              breq L142
+ 0B0C           X80:
+ 0B0C 4530              cpi R20,5
+ 0B0E E0E0              ldi R30,0
+ 0B10 5E07              cpc R21,R30
+ 0B12 89F0              breq L143
+ 0B14           X81:
+ 0B14 6DC0              xjmp L57
+ 0B16           L139:
+ 0B16                   .dbline 296
+ 0B16           ;               {case 1 : {action_base(0);break;}
+ 0B16                   .dbline 296
+ 0B16 0027              clr R16
+ 0B18 1127              clr R17
+ 0B1A 69DB              xcall _action_base
+ 0B1C                   .dbline 296
+ 0B1C 69C0              xjmp L57
+ 0B1E           L140:
+ 0B1E                   .dbline 297
+ 0B1E           ;                case 2 : {action_base(20);break;}
+ 0B1E                   .dbline 297
+ 0B1E 04E1              ldi R16,20
+ 0B20 10E0              ldi R17,0
+ 0B22 65DB              xcall _action_base
+ 0B24                   .dbline 297
+ 0B24 65C0              xjmp L57
+ 0B26           L141:
+ 0B26                   .dbline 298
+ 0B26           ;                case 3 : {action_base(19);break;}
+ 0B26                   .dbline 298
+ 0B26 03E1              ldi R16,19
+ 0B28 10E0              ldi R17,0
+ 0B2A 61DB              xcall _action_base
+ 0B2C                   .dbline 298
+ 0B2C 61C0              xjmp L57
+ 0B2E           L142:
+ 0B2E                   .dbline 299
+ 0B2E           ;                case 4 : {action_base(18);break;}
+ 0B2E                   .dbline 299
+ 0B2E 02E1              ldi R16,18
+ 0B30 10E0              ldi R17,0
+ 0B32 5DDB              xcall _action_base
+ 0B34                   .dbline 299
+ 0B34 5DC0              xjmp L57
+ 0B36           L143:
+ 0B36                   .dbline 300
+ 0B36           ;                case 5 : {action_base(0);break;}
+ 0B36                   .dbline 300
+ 0B36 0027              clr R16
+ 0B38 1127              clr R17
+ 0B3A 59DB              xcall _action_base
+ 0B3C                   .dbline 300
+ 0B3C                   .dbline 301
+ 0B3C           ;               };break;}
+ 0B3C                   .dbline 301
+ 0B3C 59C0              xjmp L57
+ 0B3E           L144:
+ 0B3E                   .dbline 303
+ 0B3E           ;               case 9:
+ 0B3E           ;       {switch(action_series_step)
+ 0B3E                   .dbline 303
+ 0B3E 40910000          lds R20,_action_series_step
+ 0B42 50910100          lds R21,_action_series_step+1
+ 0B46 4130              cpi R20,1
+ 0B48 E0E0              ldi R30,0
+ 0B4A 5E07              cpc R21,R30
+ 0B4C A9F0              breq L147
+ 0B4E           X82:
+ 0B4E 4230              cpi R20,2
+ 0B50 E0E0              ldi R30,0
+ 0B52 5E07              cpc R21,R30
+ 0B54 A9F0              breq L148
+ 0B56           X83:
+ 0B56 4330              cpi R20,3
+ 0B58 E0E0              ldi R30,0
+ 0B5A 5E07              cpc R21,R30
+ 0B5C A9F0              breq L149
+ 0B5E           X84:
+ 0B5E 4430              cpi R20,4
+ 0B60 E0E0              ldi R30,0
+ 0B62 5E07              cpc R21,R30
+ 0B64 A9F0              breq L150
+ 0B66           X85:
+ 0B66 4530              cpi R20,5
+ 0B68 E0E0              ldi R30,0
+ 0B6A 5E07              cpc R21,R30
+ 0B6C A9F0              breq L151
+ 0B6E           X86:
+ 0B6E 4630              cpi R20,6
+ 0B70 E0E0              ldi R30,0
+ 0B72 5E07              cpc R21,R30
+ 0B74 A9F0              breq L152
+ 0B76           X87:
+ 0B76 3CC0              xjmp L57
+ 0B78           L147:
+ 0B78                   .dbline 304
+ 0B78           ;               {case 1 : {action_base(9);break;}
+ 0B78                   .dbline 304
+ 0B78 09E0              ldi R16,9
+ 0B7A 10E0              ldi R17,0
+ 0B7C 38DB              xcall _action_base
+ 0B7E                   .dbline 304
+ 0B7E 38C0              xjmp L57
+ 0B80           L148:
+ 0B80                   .dbline 305
+ 0B80           ;                case 2 : {action_base(8);break;}
+ 0B80                   .dbline 305
+ 0B80 08E0              ldi R16,8
+ 0B82 10E0              ldi R17,0
+ 0B84 34DB              xcall _action_base
+ 0B86                   .dbline 305
+ 0B86 34C0              xjmp L57
+ 0B88           L149:
+ 0B88                   .dbline 306
+ 0B88           ;                case 3 : {action_base(5);break;}
+ 0B88                   .dbline 306
+ 0B88 05E0              ldi R16,5
+ 0B8A 10E0              ldi R17,0
+ 0B8C 30DB              xcall _action_base
+ 0B8E                   .dbline 306
+ 0B8E 30C0              xjmp L57
+ 0B90           L150:
+ 0B90                   .dbline 307
+ 0B90           ;                case 4 : {action_base(4);break;}
+ 0B90                   .dbline 307
+ 0B90 04E0              ldi R16,4
+ 0B92 10E0              ldi R17,0
+ 0B94 2CDB              xcall _action_base
+ 0B96                   .dbline 307
+ 0B96 2CC0              xjmp L57
+ 0B98           L151:
+ 0B98                   .dbline 308
+ 0B98           ;                case 5 : {action_base(3);break;}
+ 0B98                   .dbline 308
+ 0B98 03E0              ldi R16,3
+ 0B9A 10E0              ldi R17,0
+ 0B9C 28DB              xcall _action_base
+ 0B9E                   .dbline 308
+ 0B9E 28C0              xjmp L57
+ 0BA0           L152:
+ 0BA0                   .dbline 309
+ 0BA0           ;                case 6 : {action_base(1);break;}
+ 0BA0                   .dbline 309
+ 0BA0 01E0              ldi R16,1
+ 0BA2 10E0              ldi R17,0
+ 0BA4 24DB              xcall _action_base
+ 0BA6                   .dbline 309
+ 0BA6                   .dbline 310
+ 0BA6           ;               };break;} 
+ 0BA6                   .dbline 310
+ 0BA6 24C0              xjmp L57
+ 0BA8           L153:
+ 0BA8                   .dbline 312
+ 0BA8           ;                case 10:
+ 0BA8           ;       {switch(action_series_step)
+ 0BA8                   .dbline 312
+ 0BA8 40910000          lds R20,_action_series_step
+ 0BAC 50910100          lds R21,_action_series_step+1
+ 0BB0 4130              cpi R20,1
+ 0BB2 E0E0              ldi R30,0
+ 0BB4 5E07              cpc R21,R30
+ 0BB6 69F0              breq L156
+ 0BB8           X88:
+ 0BB8 4230              cpi R20,2
+ 0BBA E0E0              ldi R30,0
+ 0BBC 5E07              cpc R21,R30
+ 0BBE 69F0              breq L157
+ 0BC0           X89:
+ 0BC0 4330              cpi R20,3
+ 0BC2 E0E0              ldi R30,0
+ 0BC4 5E07              cpc R21,R30
+ 0BC6 69F0              breq L158
+ 0BC8           X90:
+ 0BC8 4430              cpi R20,4
+ 0BCA E0E0              ldi R30,0
+ 0BCC 5E07              cpc R21,R30
+ 0BCE 69F0              breq L159
+ 0BD0           X91:
+ 0BD0 0FC0              xjmp L57
+ 0BD2           L156:
+ 0BD2                   .dbline 313
+ 0BD2           ;               {case 1 : {action_base(9);break;}
+ 0BD2                   .dbline 313
+ 0BD2 09E0              ldi R16,9
+ 0BD4 10E0              ldi R17,0
+ 0BD6 0BDB              xcall _action_base
+ 0BD8                   .dbline 313
+ 0BD8 0BC0              xjmp L57
+ 0BDA           L157:
+ 0BDA                   .dbline 314
+ 0BDA           ;                case 2 : {action_base(8);break;}
+ 0BDA                   .dbline 314
+ 0BDA 08E0              ldi R16,8
+ 0BDC 10E0              ldi R17,0
+ 0BDE 07DB              xcall _action_base
+ 0BE0                   .dbline 314
+ 0BE0 07C0              xjmp L57
+ 0BE2           L158:
+ 0BE2                   .dbline 315
+ 0BE2           ;                case 3 : {action_base(5);break;}
+ 0BE2                   .dbline 315
+ 0BE2 05E0              ldi R16,5
+ 0BE4 10E0              ldi R17,0
+ 0BE6 03DB              xcall _action_base
+ 0BE8                   .dbline 315
+ 0BE8 03C0              xjmp L57
+ 0BEA           L159:
+ 0BEA                   .dbline 316
+ 0BEA           ;                case 4 : {action_base(4);break;}
+ 0BEA                   .dbline 316
+ 0BEA 04E0              ldi R16,4
+ 0BEC 10E0              ldi R17,0
+ 0BEE FFDA              xcall _action_base
+ 0BF0                   .dbline 316
+ 0BF0                   .dbline 317
+ 0BF0           ;               };break;} 
+ 0BF0                   .dbline 317
+ 0BF0           L56:
+ 0BF0           L57:
+ 0BF0                   .dbline 320
+ 0BF0           ; 
+ 0BF0           ;                        }
+ 0BF0           ; if(--action_series_step==0)action_series_flag=0,action_series_number=0;//Èç¹û¶¯×÷Íê³É£¬Ôò¶¯×÷ÏµÁÐ±êÖ¾Î»ÖÃ0
+ 0BF0 40910000          lds R20,_action_series_step
+ 0BF4 50910100          lds R21,_action_series_step+1
+ 0BF8 4150              subi R20,1
+ 0BFA 5040              sbci R21,0
+ 0BFC 50930100          sts _action_series_step+1,R21
+ 0C00 40930000          sts _action_series_step,R20
+ 0C04 4030              cpi R20,0
+ 0C06 4507              cpc R20,R21
+ 0C08 51F4              brne L160
+ 0C0A           X92:
+ 0C0A                   .dbline 320
+ 0C0A 2224              clr R2
+ 0C0C 3324              clr R3
+ 0C0E 30920500          sts _action_series_flag+1,R3
+ 0C12 20920400          sts _action_series_flag,R2
+ 0C16 30920300          sts _action_series_number+1,R3
+ 0C1A 20920200          sts _action_series_number,R2
+ 0C1E           L160:
+ 0C1E                   .dbline -2
+ 0C1E           L55:
+ 0C1E                   .dbline 0 ; func end
+ 0C1E 5991              ld R21,y+
+ 0C20 4991              ld R20,y+
+ 0C22 0895              ret
+ 0C24                   .dbend
+ 0C24                   .dbfunc e action_series_set _action_series_set fV
+ 0C24           ;         number -> R16,R17
+                        .even
+ 0C24           _action_series_set::
+ 0C24                   .dbline -1
+ 0C24                   .dbline 326
+ 0C24           ; 
+ 0C24           ; }
+ 0C24           ; 
+ 0C24           ; /********¶¯×÷ÏµÁÐÅäÖÃ************/
+ 0C24           ; void action_series_set(int number)
+ 0C24           ; {
+ 0C24                   .dbline 327
+ 0C24           ; switch(number)
+ 0C24 0130              cpi R16,1
+ 0C26 E0E0              ldi R30,0
+ 0C28 1E07              cpc R17,R30
+ 0C2A 09F4              brne X113
+ 0C2C 2EC0              xjmp L165
+ 0C2E           X113:
+ 0C2E           X103:
+ 0C2E 0230              cpi R16,2
+ 0C30 E0E0              ldi R30,0
+ 0C32 1E07              cpc R17,R30
+ 0C34 09F4              brne X114
+ 0C36 35C0              xjmp L166
+ 0C38           X114:
+ 0C38           X104:
+ 0C38 0330              cpi R16,3
+ 0C3A E0E0              ldi R30,0
+ 0C3C 1E07              cpc R17,R30
+ 0C3E 09F4              brne X115
+ 0C40 3CC0              xjmp L167
+ 0C42           X115:
+ 0C42           X105:
+ 0C42 0430              cpi R16,4
+ 0C44 E0E0              ldi R30,0
+ 0C46 1E07              cpc R17,R30
+ 0C48 09F4              brne X116
+ 0C4A 43C0              xjmp L168
+ 0C4C           X116:
+ 0C4C           X106:
+ 0C4C 0530              cpi R16,5
+ 0C4E E0E0              ldi R30,0
+ 0C50 1E07              cpc R17,R30
+ 0C52 09F4              brne X117
+ 0C54 4AC0              xjmp L169
+ 0C56           X117:
+ 0C56           X107:
+ 0C56 0630              cpi R16,6
+ 0C58 E0E0              ldi R30,0
+ 0C5A 1E07              cpc R17,R30
+ 0C5C 09F4              brne X118
+ 0C5E 51C0              xjmp L170
+ 0C60           X118:
+ 0C60           X108:
+ 0C60 0730              cpi R16,7
+ 0C62 E0E0              ldi R30,0
+ 0C64 1E07              cpc R17,R30
+ 0C66 09F4              brne X119
+ 0C68 57C0              xjmp L171
+ 0C6A           X119:
+ 0C6A           X109:
+ 0C6A 0830              cpi R16,8
+ 0C6C E0E0              ldi R30,0
+ 0C6E 1E07              cpc R17,R30
+ 0C70 09F4              brne X120
+ 0C72 5EC0              xjmp L172
+ 0C74           X120:
+ 0C74           X110:
+ 0C74 0930              cpi R16,9
+ 0C76 E0E0              ldi R30,0
+ 0C78 1E07              cpc R17,R30
+ 0C7A 09F4              brne X121
+ 0C7C 65C0              xjmp L173
+ 0C7E           X121:
+ 0C7E           X111:
+ 0C7E 0A30              cpi R16,10
+ 0C80 E0E0              ldi R30,0
+ 0C82 1E07              cpc R17,R30
+ 0C84 09F4              brne X122
+ 0C86 6CC0              xjmp L174
+ 0C88           X122:
+ 0C88           X112:
+ 0C88 76C0              xjmp L163
+ 0C8A           L165:
+ 0C8A                   .dbline 328
+ 0C8A           ; {case 1 : {action_series_number=1;action_series_step=11;break;}                //Æô¶¯²¢×ßÒ»²½
+ 0C8A                   .dbline 328
+ 0C8A 81E0              ldi R24,1
+ 0C8C 90E0              ldi R25,0
+ 0C8E 90930300          sts _action_series_number+1,R25
+ 0C92 80930200          sts _action_series_number,R24
+ 0C96                   .dbline 328
+ 0C96 8BE0              ldi R24,11
+ 0C98 90930100          sts _action_series_step+1,R25
+ 0C9C 80930000          sts _action_series_step,R24
+ 0CA0                   .dbline 328
+ 0CA0 6AC0              xjmp L164
+ 0CA2           L166:
+ 0CA2                   .dbline 329
+ 0CA2           ; case 2 : {action_series_number=2;action_series_step=10;break;}                 //¼ÌÐø×ß
+ 0CA2                   .dbline 329
+ 0CA2 82E0              ldi R24,2
+ 0CA4 90E0              ldi R25,0
+ 0CA6 90930300          sts _action_series_number+1,R25
+ 0CAA 80930200          sts _action_series_number,R24
+ 0CAE                   .dbline 329
+ 0CAE 8AE0              ldi R24,10
+ 0CB0 90930100          sts _action_series_step+1,R25
+ 0CB4 80930000          sts _action_series_step,R24
+ 0CB8                   .dbline 329
+ 0CB8 5EC0              xjmp L164
+ 0CBA           L167:
+ 0CBA                   .dbline 330
+ 0CBA           ; case 3 : {action_series_number=3;action_series_step=11;break;}                 //Æô¶¯²¢ºóÍËÒ»²½
+ 0CBA                   .dbline 330
+ 0CBA 83E0              ldi R24,3
+ 0CBC 90E0              ldi R25,0
+ 0CBE 90930300          sts _action_series_number+1,R25
+ 0CC2 80930200          sts _action_series_number,R24
+ 0CC6                   .dbline 330
+ 0CC6 8BE0              ldi R24,11
+ 0CC8 90930100          sts _action_series_step+1,R25
+ 0CCC 80930000          sts _action_series_step,R24
+ 0CD0                   .dbline 330
+ 0CD0 52C0              xjmp L164
+ 0CD2           L168:
+ 0CD2                   .dbline 331
+ 0CD2           ; case 4 : {action_series_number=4;action_series_step=10;break;}                 //¼ÌÐøºóÍË
+ 0CD2                   .dbline 331
+ 0CD2 84E0              ldi R24,4
+ 0CD4 90E0              ldi R25,0
+ 0CD6 90930300          sts _action_series_number+1,R25
+ 0CDA 80930200          sts _action_series_number,R24
+ 0CDE                   .dbline 331
+ 0CDE 8AE0              ldi R24,10
+ 0CE0 90930100          sts _action_series_step+1,R25
+ 0CE4 80930000          sts _action_series_step,R24
+ 0CE8                   .dbline 331
+ 0CE8 46C0              xjmp L164
+ 0CEA           L169:
+ 0CEA                   .dbline 332
+ 0CEA           ; case 5 : {action_series_number=5;action_series_step=6;break;}          //¼ÌÐøºóÍË
+ 0CEA                   .dbline 332
+ 0CEA 85E0              ldi R24,5
+ 0CEC 90E0              ldi R25,0
+ 0CEE 90930300          sts _action_series_number+1,R25
+ 0CF2 80930200          sts _action_series_number,R24
+ 0CF6                   .dbline 332
+ 0CF6 86E0              ldi R24,6
+ 0CF8 90930100          sts _action_series_step+1,R25
+ 0CFC 80930000          sts _action_series_step,R24
+ 0D00                   .dbline 332
+ 0D00 3AC0              xjmp L164
+ 0D02           L170:
+ 0D02                   .dbline 333
+ 0D02           ; case 6 : {action_series_number=6;action_series_step=6;break;}          //¼ÌÐøºóÍË
+ 0D02                   .dbline 333
+ 0D02 86E0              ldi R24,6
+ 0D04 90E0              ldi R25,0
+ 0D06 90930300          sts _action_series_number+1,R25
+ 0D0A 80930200          sts _action_series_number,R24
+ 0D0E                   .dbline 333
+ 0D0E 90930100          sts _action_series_step+1,R25
+ 0D12 80930000          sts _action_series_step,R24
+ 0D16                   .dbline 333
+ 0D16 2FC0              xjmp L164
+ 0D18           L171:
+ 0D18                   .dbline 334
+ 0D18           ; case 7 : {action_series_number=7;action_series_step=6;break;}          //¼ÌÐøºóÍË
+ 0D18                   .dbline 334
+ 0D18 87E0              ldi R24,7
+ 0D1A 90E0              ldi R25,0
+ 0D1C 90930300          sts _action_series_number+1,R25
+ 0D20 80930200          sts _action_series_number,R24
+ 0D24                   .dbline 334
+ 0D24 86E0              ldi R24,6
+ 0D26 90930100          sts _action_series_step+1,R25
+ 0D2A 80930000          sts _action_series_step,R24
+ 0D2E                   .dbline 334
+ 0D2E 23C0              xjmp L164
+ 0D30           L172:
+ 0D30                   .dbline 335
+ 0D30           ; case 8 : {action_series_number=8;action_series_step=6;break;}          //¼ÌÐøºóÍË
+ 0D30                   .dbline 335
+ 0D30 88E0              ldi R24,8
+ 0D32 90E0              ldi R25,0
+ 0D34 90930300          sts _action_series_number+1,R25
+ 0D38 80930200          sts _action_series_number,R24
+ 0D3C                   .dbline 335
+ 0D3C 86E0              ldi R24,6
+ 0D3E 90930100          sts _action_series_step+1,R25
+ 0D42 80930000          sts _action_series_step,R24
+ 0D46                   .dbline 335
+ 0D46 17C0              xjmp L164
+ 0D48           L173:
+ 0D48                   .dbline 336
+ 0D48           ; case 9 : {action_series_number=9;action_series_step=6;break;}          //¼ÌÐøºóÍË
+ 0D48                   .dbline 336
+ 0D48 89E0              ldi R24,9
+ 0D4A 90E0              ldi R25,0
+ 0D4C 90930300          sts _action_series_number+1,R25
+ 0D50 80930200          sts _action_series_number,R24
+ 0D54                   .dbline 336
+ 0D54 86E0              ldi R24,6
+ 0D56 90930100          sts _action_series_step+1,R25
+ 0D5A 80930000          sts _action_series_step,R24
+ 0D5E                   .dbline 336
+ 0D5E 0BC0              xjmp L164
+ 0D60           L174:
+ 0D60                   .dbline 337
+ 0D60           ; case 10 : {action_series_number=10;action_series_step=4;break;}                //¼ÌÐøºóÍË
+ 0D60                   .dbline 337
+ 0D60 8AE0              ldi R24,10
+ 0D62 90E0              ldi R25,0
+ 0D64 90930300          sts _action_series_number+1,R25
+ 0D68 80930200          sts _action_series_number,R24
+ 0D6C                   .dbline 337
+ 0D6C 84E0              ldi R24,4
+ 0D6E 90930100          sts _action_series_step+1,R25
+ 0D72 80930000          sts _action_series_step,R24
+ 0D76                   .dbline 337
+ 0D76           L163:
+ 0D76           L164:
+ 0D76                   .dbline 339
+ 0D76           ; }
+ 0D76           ; action_series_flag=1;
+ 0D76 81E0              ldi R24,1
+ 0D78 90E0              ldi R25,0
+ 0D7A 90930500          sts _action_series_flag+1,R25
+ 0D7E 80930400          sts _action_series_flag,R24
+ 0D82                   .dbline -2
+ 0D82           L162:
+ 0D82                   .dbline 0 ; func end
+ 0D82 0895              ret
+ 0D84                   .dbsym r number 16 I
+ 0D84                   .dbend
+ 0D84                   .dbfunc e pwm_init _pwm_init fV
+                        .even
+ 0D84           _pwm_init::
+ 0D84                   .dbline -1
+ 0D84                   .dbline 343
+ 0D84           ; }
+ 0D84           ; 
+ 0D84           ; void pwm_init(void)
+ 0D84           ; {
+ 0D84                   .dbline 344
+ 0D84           ; DDRB|=BIT(PB7);
+ 0D84 BF9A              sbi 0x17,7
+ 0D86                   .dbline 345
+ 0D86           ;  DDRB|=BIT(PB6);
+ 0D86 BE9A              sbi 0x17,6
+ 0D88                   .dbline 346
+ 0D88           ;  DDRB|=BIT(PB5);
+ 0D88 BD9A              sbi 0x17,5
+ 0D8A                   .dbline 347
+ 0D8A           ;  DDRE|=BIT(PE3);
+ 0D8A 139A              sbi 0x2,3
+ 0D8C                   .dbline 348
+ 0D8C           ;  DDRE|=BIT(PE4);
+ 0D8C 149A              sbi 0x2,4
+ 0D8E                   .dbline 349
+ 0D8E           ;  DDRE|=BIT(PE5);
+ 0D8E 159A              sbi 0x2,5
+ 0D90                   .dbline 352
+ 0D90           ; //½«OCR1A¹Ü½ÅÅäÖÃÎªÊä³ö
+ 0D90           ; 
+ 0D90           ; TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+ 0D90 8EB5              in R24,0x2e
+ 0D92 8A61              ori R24,26
+ 0D94 8EBD              out 0x2e,R24
+ 0D96                   .dbline 355
+ 0D96           ; 
+ 0D96           ; //Ê±ÖÓ8·ÖÆµ
+ 0D96           ; TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //Ñ¡Í¨ABC  
+ 0D96 8FB5              in R24,0x2f
+ 0D98 8A6A              ori R24,170
+ 0D9A 8FBD              out 0x2f,R24
+ 0D9C                   .dbline 360
+ 0D9C           ; //TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ 0D9C           ; 
+ 0D9C           ; //¿ìËÙPWMÄ£Ê½top:ICR1
+ 0D9C           ; 
+ 0D9C           ; ICR1=20000;
+ 0D9C 80E2              ldi R24,20000
+ 0D9E 9EE4              ldi R25,78
+ 0DA0 97BD              out 0x27,R25
+ 0DA2 86BD              out 0x26,R24
+ 0DA4                   .dbline 362
+ 0DA4           ; 
+ 0DA4           ; TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+ 0DA4 80918A00          lds R24,138
+ 0DA8 8A61              ori R24,26
+ 0DAA 80938A00          sts 138,R24
+ 0DAE                   .dbline 364
+ 0DAE           ; //(1<<WGM32)|(1<<WGM33)|(1<<CS31);
+ 0DAE           ; TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //Ñ¡Í¨ABC
+ 0DAE 80918B00          lds R24,139
+ 0DB2 8A6A              ori R24,170
+ 0DB4 80938B00          sts 139,R24
+ 0DB8                   .dbline 365
+ 0DB8           ;       ICR3=20000;
+ 0DB8 80E2              ldi R24,32
+ 0DBA 90938100          sts 128+1,R25
+ 0DBE 80938000          sts 128,R24
+ 0DC2                   .dbline 370
+ 0DC2           ; 
+ 0DC2           ; 
+ 0DC2           ; //ÖÜÆÚ20ms
+ 0DC2           ; 
+ 0DC2           ; OCR1C=1680;   //2000---3000--4000
+ 0DC2 80E9              ldi R24,1680
+ 0DC4 96E0              ldi R25,6
+ 0DC6 90937900          sts 120+1,R25
+ 0DCA 80937800          sts 120,R24
+ 0DCE                   .dbline 371
+ 0DCE           ; OCR1B=1880;
+ 0DCE 88E5              ldi R24,1880
+ 0DD0 97E0              ldi R25,7
+ 0DD2 99BD              out 0x29,R25
+ 0DD4 88BD              out 0x28,R24
+ 0DD6                   .dbline 372
+ 0DD6           ; OCR1A=1640;
+ 0DD6 88E6              ldi R24,1640
+ 0DD8 96E0              ldi R25,6
+ 0DDA 9BBD              out 0x2b,R25
+ 0DDC 8ABD              out 0x2a,R24
+ 0DDE                   .dbline 373
+ 0DDE           ; OCR3C=1620;
+ 0DDE 84E5              ldi R24,84
+ 0DE0 90938300          sts 130+1,R25
+ 0DE4 80938200          sts 130,R24
+ 0DE8                   .dbline 374
+ 0DE8           ; OCR3B=1600;
+ 0DE8 80E4              ldi R24,64
+ 0DEA 90938500          sts 132+1,R25
+ 0DEE 80938400          sts 132,R24
+ 0DF2                   .dbline 375
+ 0DF2           ; OCR3A=1800;
+ 0DF2 88E0              ldi R24,1800
+ 0DF4 97E0              ldi R25,7
+ 0DF6 90938700          sts 134+1,R25
+ 0DFA 80938600          sts 134,R24
+ 0DFE                   .dbline -2
+ 0DFE           L175:
+ 0DFE                   .dbline 0 ; func end
+ 0DFE 0895              ret
+ 0E00                   .dbend
+ 0E00                   .dbfunc e main _main fV
+ 0E00           ;              k -> <dead>
+ 0E00           ;              j -> <dead>
+ 0E00           ;              i -> <dead>
+ 0E00           ;            rev -> R10
+ 0E00           ;         number -> R20,R21
+                        .even
+ 0E00           _main::
+ 0E00                   .dbline -1
+ 0E00                   .dbline 387
+ 0E00           ; 
+ 0E00           ; //ÕýÂö¿í
+ 0E00           ; 
+ 0E00           ; 
+ 0E00           ; /*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+ 0E00           ; TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+ 0E00           ; ICR1=40000;   */
+ 0E00           ; 
+ 0E00           ; }
+ 0E00           ; 
+ 0E00           ; void main (void)
+ 0E00           ; {
+ 0E00                   .dbline 389
+ 0E00           ;  int i,j,k;
+ 0E00           ; int number=0;
+ 0E00 4427              clr R20
+ 0E02 5527              clr R21
+ 0E04                   .dbline 390
+ 0E04           ; char rev=0;
+ 0E04 AA24              clr R10
+ 0E06                   .dbline 391
+ 0E06           ;    pwm_init();
+ 0E06 BEDF              xcall _pwm_init
+ 0E08                   .dbline 397
+ 0E08           ; 
+ 0E08           ; 
+ 0E08           ; // usart0_init;//UART0³õÊ¼»¯
+ 0E08           ;   
+ 0E08           ; 
+ 0E08           ; uart1_init();
+ 0E08 FBD8              xcall _uart1_init
+ 0E0A 6BC0              xjmp L178
+ 0E0C           L177:
+ 0E0C                   .dbline 400
+ 0E0C           ; //ÇåÁã¼ÆÊýÆ÷
+ 0E0C           ; 
+ 0E0C           ; while(1){
+ 0E0C                   .dbline 410
+ 0E0C           ; /*
+ 0E0C           ; for(i=0;i<1000;i++){
+ 0E0C           ;     for(j=0;j<500;j++){
+ 0E0C           ;        for(k=0;k<5;k++){   //k<10,Ô¼ÈýÃë  
+ 0E0C           ;          ; 
+ 0E0C           ;                }
+ 0E0C           ;     }
+ 0E0C           ; }
+ 0E0C           ; */
+ 0E0C           ;    number=number+1;
+ 0E0C 4F5F              subi R20,255  ; offset = 1
+ 0E0E 5F4F              sbci R21,255
+ 0E10                   .dbline 411
+ 0E10           ;    if(number>10){
+ 0E10 8AE0              ldi R24,10
+ 0E12 90E0              ldi R25,0
+ 0E14 8417              cp R24,R20
+ 0E16 9507              cpc R25,R21
+ 0E18 14F4              brge L180
+ 0E1A           X123:
+ 0E1A                   .dbline 411
+ 0E1A                   .dbline 412
+ 0E1A           ;    number=0;
+ 0E1A 4427              clr R20
+ 0E1C 5527              clr R21
+ 0E1E                   .dbline 413
+ 0E1E           ;    }
+ 0E1E           L180:
+ 0E1E                   .dbline 417
+ 0E1E           ;    
+ 0E1E           ; //usart0_char_send(1);
+ 0E1E           ;  //usart0_str_send("UART0 works well!"); 
+ 0E1E           ;     putchar1(temp);
+ 0E1E 00910600          lds R16,_temp
+ 0E22 10910700          lds R17,_temp+1
+ 0E26 01D9              xcall _putchar1
+ 0E28                   .dbline 419
+ 0E28           ;       
+ 0E28           ;                 temp=getchar1();
+ 0E28 07D9              xcall _getchar1
+ 0E2A 202E              mov R2,R16
+ 0E2C 3324              clr R3
+ 0E2E 30920700          sts _temp+1,R3
+ 0E32 20920600          sts _temp,R2
+ 0E36                   .dbline 420
+ 0E36           ;            if(temp>127){
+ 0E36 8FE7              ldi R24,127
+ 0E38 90E0              ldi R25,0
+ 0E3A 8215              cp R24,R2
+ 0E3C 9305              cpc R25,R3
+ 0E3E 3CF4              brge L182
+ 0E40           X124:
+ 0E40                   .dbline 420
+ 0E40                   .dbline 421
+ 0E40           ;                temp=temp-128;
+ 0E40 C101              movw R24,R2
+ 0E42 8058              subi R24,128
+ 0E44 9040              sbci R25,0
+ 0E46 90930700          sts _temp+1,R25
+ 0E4A 80930600          sts _temp,R24
+ 0E4E                   .dbline 422
+ 0E4E           ;                }
+ 0E4E           L182:
+ 0E4E                   .dbline 424
+ 0E4E           ;      
+ 0E4E           ;                if((temp<26)&&(temp>-1)){
+ 0E4E 20900600          lds R2,_temp
+ 0E52 30900700          lds R3,_temp+1
+ 0E56 C101              movw R24,R2
+ 0E58 8A31              cpi R24,26
+ 0E5A E0E0              ldi R30,0
+ 0E5C 9E07              cpc R25,R30
+ 0E5E CCF5              brge L184
+ 0E60           X125:
+ 0E60 8FEF              ldi R24,-1
+ 0E62 9FEF              ldi R25,-1
+ 0E64 8215              cp R24,R2
+ 0E66 9305              cpc R25,R3
+ 0E68 A4F5              brge L184
+ 0E6A           X126:
+ 0E6A                   .dbline 424
+ 0E6A                   .dbline 427
+ 0E6A           ;               // action_base(temp);
+ 0E6A           ;               
+ 0E6A           ;          if(temp==1){              //Í£Ö¹
+ 0E6A C101              movw R24,R2
+ 0E6C 8130              cpi R24,1
+ 0E6E E0E0              ldi R30,0
+ 0E70 9E07              cpc R25,R30
+ 0E72 19F4              brne L186
+ 0E74           X127:
+ 0E74                   .dbline 427
+ 0E74                   .dbline 428
+ 0E74           ;                action_base(0);
+ 0E74 0027              clr R16
+ 0E76 1127              clr R17
+ 0E78 BAD9              xcall _action_base
+ 0E7A                   .dbline 429
+ 0E7A           ;                }
+ 0E7A           L186:
+ 0E7A                   .dbline 431
+ 0E7A           ;                
+ 0E7A           ;                if(temp==2){             //Ç°½ø
+ 0E7A 80910600          lds R24,_temp
+ 0E7E 90910700          lds R25,_temp+1
+ 0E82 8230              cpi R24,2
+ 0E84 E0E0              ldi R30,0
+ 0E86 9E07              cpc R25,R30
+ 0E88 19F4              brne L188
+ 0E8A           X128:
+ 0E8A                   .dbline 431
+ 0E8A                   .dbline 432
+ 0E8A           ;                action_base(1);
+ 0E8A 01E0              ldi R16,1
+ 0E8C 10E0              ldi R17,0
+ 0E8E AFD9              xcall _action_base
+ 0E90                   .dbline 433
+ 0E90           ;                }
+ 0E90           L188:
+ 0E90                   .dbline 435
+ 0E90           ;       
+ 0E90           ;            if(temp==3){             //ºóÍË
+ 0E90 80910600          lds R24,_temp
+ 0E94 90910700          lds R25,_temp+1
+ 0E98 8330              cpi R24,3
+ 0E9A E0E0              ldi R30,0
+ 0E9C 9E07              cpc R25,R30
+ 0E9E 19F4              brne L190
+ 0EA0           X129:
+ 0EA0                   .dbline 435
+ 0EA0                   .dbline 436
+ 0EA0           ;                action_base(2);
+ 0EA0 02E0              ldi R16,2
+ 0EA2 10E0              ldi R17,0
+ 0EA4 A4D9              xcall _action_base
+ 0EA6                   .dbline 437
+ 0EA6           ;                } 
+ 0EA6           L190:
+ 0EA6                   .dbline 439
+ 0EA6           ;                
+ 0EA6           ;                if(temp==4){            //×ó
+ 0EA6 80910600          lds R24,_temp
+ 0EAA 90910700          lds R25,_temp+1
+ 0EAE 8430              cpi R24,4
+ 0EB0 E0E0              ldi R30,0
+ 0EB2 9E07              cpc R25,R30
+ 0EB4 19F4              brne L192
+ 0EB6           X130:
+ 0EB6                   .dbline 439
+ 0EB6                   .dbline 440
+ 0EB6           ;                action_base(8);
+ 0EB6 08E0              ldi R16,8
+ 0EB8 10E0              ldi R17,0
+ 0EBA 99D9              xcall _action_base
+ 0EBC                   .dbline 441
+ 0EBC           ;                } 
+ 0EBC           L192:
+ 0EBC                   .dbline 443
+ 0EBC           ;                
+ 0EBC           ;                if(temp==5){           //ÓÒ
+ 0EBC 80910600          lds R24,_temp
+ 0EC0 90910700          lds R25,_temp+1
+ 0EC4 8530              cpi R24,5
+ 0EC6 E0E0              ldi R30,0
+ 0EC8 9E07              cpc R25,R30
+ 0ECA 19F4              brne L194
+ 0ECC           X131:
+ 0ECC                   .dbline 443
+ 0ECC                   .dbline 444
+ 0ECC           ;                action_base(22);
+ 0ECC 06E1              ldi R16,22
+ 0ECE 10E0              ldi R17,0
+ 0ED0 8ED9              xcall _action_base
+ 0ED2                   .dbline 445
+ 0ED2           ;                } 
+ 0ED2           L194:
+ 0ED2                   .dbline 448
+ 0ED2           ;                
+ 0ED2           ;     
+ 0ED2           ;          }
+ 0ED2           L184:
+ 0ED2                   .dbline 453
+ 0ED2           ; // action_series_set(number);
+ 0ED2           ; // action_series_do();
+ 0ED2           ; 
+ 0ED2           ; //usart0_char_send(0);
+ 0ED2           ;  temp_last=temp;
+ 0ED2 20900600          lds R2,_temp
+ 0ED6 30900700          lds R3,_temp+1
+ 0EDA 30920900          sts _temp_last+1,R3
+ 0EDE 20920800          sts _temp_last,R2
+ 0EE2                   .dbline 465
+ 0EE2           ; 
+ 0EE2           ; 
+ 0EE2           ; /*
+ 0EE2           ;     OCR1C=3000-OCR1C; 
+ 0EE2           ;       OCR1B=3000-OCR1B; 
+ 0EE2           ;       OCR1A=3000-OCR1A; 
+ 0EE2           ;     OCR3C=3000-OCR3C; 
+ 0EE2           ;       OCR3B=3000-OCR3B; 
+ 0EE2           ;       OCR3A=3000-OCR3A; 
+ 0EE2           ;       */
+ 0EE2           ;       
+ 0EE2           ; }
+ 0EE2           L178:
+ 0EE2                   .dbline 400
+ 0EE2 94CF              xjmp L177
+ 0EE4           X132:
+ 0EE4                   .dbline -2
+ 0EE4           L176:
+ 0EE4                   .dbline 0 ; func end
+ 0EE4 0895              ret
+ 0EE6                   .dbsym l k 1 I
+ 0EE6                   .dbsym l j 1 I
+ 0EE6                   .dbsym l i 1 I
+ 0EE6                   .dbsym r rev 10 c
+ 0EE6                   .dbsym r number 20 I
+ 0EE6                   .dbend
+                        .area bss(ram, con, rel)
+ 0000                   .dbfile C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+ 0000           _data1::
+ 0000                   .blkb 1
+ 0001                   .dbsym e data1 _data1 c
+ 0001           _data_temp::
+ 0001                   .blkb 1
+ 0002                   .dbsym e data_temp _data_temp c
+ 0002           ; }

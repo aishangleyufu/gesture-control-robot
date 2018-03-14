@@ -1,0 +1,28 @@
+#include <iom128v.h> 
+#include <macros.h> 
+
+
+int main ()
+{
+unsigned int i,a=0,c=0;
+unsigned char b=0;
+TCCR1A=0xff; //通道A,B,C均设置为比较输出模式
+TCCR1B=0x0A; //采用10位快速PWM模式，top值为0X03FF，决定pwm频率;
+TCNT1=0X0000; //设置定时器的初始值
+TIMSK=0X00;
+ETIMSK=0X00;
+DDRB=0xff;
+while(1)
+{
+OCR1A=512; //决定OCR1A的占空比
+OCR1B=256; //决定OC1B的占空比
+OCR1C=OCR1C+1; //决定OC1C的占空比
+c++;
+OCR1C=c;
+if(c>=0x03f0)
+{c=0;};
+
+i=500;
+while(i--);
+}
+}

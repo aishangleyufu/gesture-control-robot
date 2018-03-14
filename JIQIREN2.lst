@@ -1,0 +1,2404 @@
+Interrupt Vectors
+    00000 940C 0067 JMP	__text_start|__start
+    0003C 940C 00C1 JMP	_uart1_rx_isr
+
+Program Code (text area)
+__text_start|__start:
+    00067 EFCF      LDI	R28,0xFF
+    00068 E1D0      LDI	R29,0x10
+    00069 BFCD      OUT	0x3D,R28
+    0006A BFDE      OUT	0x3E,R29
+    0006B 51CE      SUBI	R28,0x1E
+    0006C 40D0      SBCI	R29,0
+    0006D EA0A      LDI	R16,0xAA
+    0006E 8308      ST	Y,R16
+    0006F 2400      CLR	R0
+    00070 E1E0      LDI	R30,0x10
+    00071 E0F1      LDI	R31,1
+    00072 E011      LDI	R17,1
+    00073 31E2      CPI	R30,0x12
+    00074 07F1      CPC	R31,R17
+    00075 F011      BEQ	0x0078
+    00076 9201      ST	Z+,R0
+    00077 CFFB      RJMP	0x0073
+    00078 8300      ST	Z,R16
+    00079 EBEE      LDI	R30,0xBE
+    0007A E0F0      LDI	R31,0
+    0007B E0A0      LDI	R26,0
+    0007C E0B1      LDI	R27,1
+    0007D E010      LDI	R17,0
+    0007E E000      LDI	R16,0
+    0007F BF0B      OUT	0x3B,R16
+    00080 3CEE      CPI	R30,0xCE
+    00081 07F1      CPC	R31,R17
+    00082 F021      BEQ	0x0087
+    00083 95C8      LPM
+    00084 9631      ADIW	R30,1
+    00085 920D      ST	X+,R0
+    00086 CFF9      RJMP	0x0080
+    00087 940E 078A CALL	_main
+_exit:
+    00089 CFFF      RJMP	_exit
+FILE: C:\Users\c\Desktop\ÈýÏÂ\jiqiren\main.c
+(0001) /*======
+(0002) Ê¹ÓÃ¶¨Ê±Æ÷1£¬OCR1A,OCR1B,OCR1CÈý¸ö¹Ü½ÅÍ¬Ê±Êä³öPWM²¨ÐÎ
+(0003) ÔÚ¿ìËÙPWMµÄÄ£Ê½ÏÂ£¬top=0x03ff=1023
+(0004) OCRnXÔÚtopÊ±¿Ì¸üÐÂ
+(0005) ÆµÂÊ=8000000/8/1023=977.5HZ
+(0006) =======================================================*/
+(0007) #include <iom128v.h> 
+(0008) #include <macros.h> 
+(0009) int action_series_step=0;
+(0010) int action_series_number=0;
+(0011) int action_series_flag=0;
+(0012) 
+(0013) int temp=0;
+(0014) int temp_last=0;
+(0015) char sendflag1=0;
+(0016) char sendflag=0;
+(0017) #define uchar unsigned char //¶¨ÒåÎÞ·ûºÅ×Ö·ûÎª uchar
+(0018) #define uint unsigned int //¶¨ÒåÎÞ·ûºÅÕûÐÍ
+(0019) #define Crystal 8000000 //¾§Õñ8MHZ
+(0020) #define Baud 115200 //²¨ÌØÂÊ?
+(0021) #define fosc 8000000 
+(0022) #define baud 115200  //²¨ÌØÂÊ
+(0023) uchar data_temp;
+(0024) char data1;
+(0025) uchar usart0_data_counter=0;//´®¿Ú½ÓÊÕÖÐ¶Ï¼ÆÊý
+(0026) uchar usart0_data_receive[3]={0x0f,0x0f,0x0f};//½ÓÊÕ´®¿ÚÊý¾Ý
+(0027) 
+(0028) 
+(0029) void uart1_init(void) //USART1³õÊ¼»¯
+(0030) {
+(0031)  DDRD|=(1<<2)|(1<<3);   //  IO
+_uart1_init:
+    0008A B381      IN	R24,0x11
+    0008B 608C      ORI	R24,0xC
+    0008C BB81      OUT	0x11,R24
+(0032)  UCSR1B = 0x00;   //¹Ø±ÕUSART1
+    0008D 2422      CLR	R2
+    0008E 9220 009A STS	0x9A,R2
+(0033)  UCSR1A = 0x02;   //²»ÊÊÊ¹ÓÃ±¶ËÙ·¢ËÍ
+    00090 E082      LDI	R24,2
+    00091 9380 009B STS	0x9B,R24
+(0034)  UCSR1C = (1<<UCSZ11)|(1<<UCSZ10);//Êý¾ÝÎ»Îª°ËÎ»
+    00093 E086      LDI	R24,6
+    00094 9380 009D STS	0x9D,R24
+(0035)  UBRR1L=(fosc/8/(baud+1))%256;//Òì²½Õý³£Ä£Ê½ÏÂ£¬UBRRµÄ¼ÆËã¹«Ê½
+    00096 E088      LDI	R24,0x8
+    00097 9380 0099 STS	0x99,R24
+(0036)  UBRR1H=(fosc/8/(baud+1))/256;
+    00099 9220 0098 STS	0x98,R2
+(0037)  UCSR1B =(1<<RXEN1)|(1<<TXEN1); //½ÓÊÕÊ¹ÄÜ£¬´«ËÍÊ¹ÄÜ
+    0009B E188      LDI	R24,0x18
+    0009C 9380 009A STS	0x9A,R24
+    0009E 9508      RET
+(0038) }
+(0039) /****************************************************************************
+(0040) º¯Êý¹¦ÄÜ:uart1·¢ËÍµ¥×Ö½ÚÊý¾Ý
+(0041) Èë¿Ú²ÎÊý:c
+(0042) ³ö¿Ú²ÎÊý:
+(0043) ****************************************************************************/
+(0044) void putchar1(unsigned char c)//´®¿Ú1·¢ËÍ×Ö·û
+(0045)  {  
+(0046)      while (!(UCSR1A&(1<<UDRE1)));//±íÃ÷·¢ËÍÆ÷Ò»×¼±¸¾ÍÐ÷
+_putchar1:
+  c                    --> R16
+    0009F 9020 009B LDS	R2,0x9B
+    000A1 FE25      SBRS	R2,5
+    000A2 CFFC      RJMP	_putchar1
+(0047)   UDR1=c;    
+    000A3 9300 009C STS	0x9C,R16
+    000A5 9508      RET
+(0048)  } 
+(0049)  
+(0050) /****************************************************************************
+(0051) º¯Êý¹¦ÄÜ:uart1½ÓÊÕµ¥×Ö½ÚÊý¾Ý
+(0052) Èë¿Ú²ÎÊý:
+(0053) ³ö¿Ú²ÎÊý:
+(0054) ****************************************************************************/
+(0055) unsigned char getchar1(void) //´®¿Ú1½Ó»ØÊÕÊý¾Ý
+(0056)    {
+(0057)   while(!(UCSR1A& (1<<RXC1)));
+_getchar1:
+    000A6 9020 009B LDS	R2,0x9B
+    000A8 FE27      SBRS	R2,7
+    000A9 CFFC      RJMP	_getchar1
+(0058)      return UDR1;   //½«½ÓÊÕµ½µÄ×Ö·û·µ»Ø
+    000AA 9100 009C LDS	R16,0x9C
+    000AC 9508      RET
+_puts1:
+  s                    --> R20
+    000AD 934A      ST	-Y,R20
+    000AE 935A      ST	-Y,R21
+    000AF 01A8      MOVW	R20,R16
+(0059)  } 
+(0060)  
+(0061) /****************************************************************************
+(0062) º¯Êý¹¦ÄÜ:uart1·¢ËÍ×Ö·û´®Êý¾Ý
+(0063) Èë¿Ú²ÎÊý:*s
+(0064) ³ö¿Ú²ÎÊý:
+(0065) ****************************************************************************/    
+(0066) void puts1(char *s)
+(0067)  {
+    000B0 C005      RJMP	0x00B6
+(0068)  while (*s)
+(0069)   {
+(0070)   putchar1(*s);
+    000B1 01FA      MOVW	R30,R20
+    000B2 8100      LD	R16,Z
+    000B3 DFEB      RCALL	_putchar1
+(0071)   s++;
+    000B4 5F4F      SUBI	R20,0xFF
+    000B5 4F5F      SBCI	R21,0xFF
+    000B6 01FA      MOVW	R30,R20
+    000B7 8020      LD	R2,Z
+    000B8 2022      TST	R2
+    000B9 F7B9      BNE	0x00B1
+(0072)   } 
+(0073)         putchar1(0x0a);//»Ø³µ»»ÐÐ
+    000BA E00A      LDI	R16,0xA
+    000BB DFE3      RCALL	_putchar1
+(0074)      putchar1(0x0d);
+    000BC E00D      LDI	R16,0xD
+    000BD DFE1      RCALL	_putchar1
+    000BE 9159      LD	R21,Y+
+    000BF 9149      LD	R20,Y+
+    000C0 9508      RET
+_uart1_rx_isr:
+    000C1 922A      ST	-Y,R2
+    000C2 938A      ST	-Y,R24
+    000C3 939A      ST	-Y,R25
+    000C4 B62F      IN	R2,0x3F
+    000C5 922A      ST	-Y,R2
+(0075)  } 
+(0076)  
+(0077) 
+(0078) #pragma interrupt_handler uart1_rx_isr:31
+(0079)  void uart1_rx_isr(void)
+(0080) { 
+(0081)  UCSR1B=0x00;     
+    000C6 2422      CLR	R2
+    000C7 9220 009A STS	0x9A,R2
+(0082)  temp=2;
+    000C9 E082      LDI	R24,2
+    000CA E090      LDI	R25,0
+    000CB 9390 0107 STS	temp+1,R25
+    000CD 9380 0106 STS	temp,R24
+(0083) UCSR1B=0xD8 ;                        //ÔÊÐí·¢ËÍºÍ½ÓÊÕ,½ÓÊÕºÍ·¢ËÍ½áÊøÖÐ¶ÏÊ¹ÄÜ
+    000CF ED88      LDI	R24,0xD8
+    000D0 9380 009A STS	0x9A,R24
+    000D2 9029      LD	R2,Y+
+    000D3 BE2F      OUT	0x3F,R2
+    000D4 9199      LD	R25,Y+
+    000D5 9189      LD	R24,Y+
+    000D6 9029      LD	R2,Y+
+    000D7 9518      RETI
+_delay_1ms:
+  i                    --> Y,+0
+    000D8 9724      SBIW	R28,4
+(0084) 	            
+(0085) 	
+(0086) }
+(0087) 
+(0088) 
+(0089) void delay_1ms(void)//1msÑÓÊ±º¯Êý 
+(0090) { 
+(0091)   long int i; 
+(0092)   for (i=0;i<150*16;i++) ;//ÒòÎªÊÇ8M¾§Õñ£¬ËùÒÔÕâÀï³Ë8£¬Õâ¸öÑÓÊ±²»¹»¾«×¼ 
+    000D9 E080      LDI	R24,0
+    000DA 8388      ST	Y,R24
+    000DB 8389      STD	Y+1,R24
+    000DC 838A      STD	Y+2,R24
+    000DD 838B      STD	Y+3,R24
+    000DE E081      LDI	R24,1
+    000DF E090      LDI	R25,0
+    000E0 E0A0      LDI	R26,0
+    000E1 E0B0      LDI	R27,0
+    000E2 8028      LD	R2,Y
+    000E3 8039      LDD	R3,Y+1
+    000E4 804A      LDD	R4,Y+2
+    000E5 805B      LDD	R5,Y+3
+    000E6 0E28      ADD	R2,R24
+    000E7 1E39      ADC	R3,R25
+    000E8 1E4A      ADC	R4,R26
+    000E9 1E5B      ADC	R5,R27
+    000EA 8228      ST	Y,R2
+    000EB 8239      STD	Y+1,R3
+    000EC 824A      STD	Y+2,R4
+    000ED 825B      STD	Y+3,R5
+    000EE E680      LDI	R24,0x60
+    000EF E099      LDI	R25,0x9
+    000F0 E0A0      LDI	R26,0
+    000F1 E0B0      LDI	R27,0
+    000F2 8028      LD	R2,Y
+    000F3 8039      LDD	R3,Y+1
+    000F4 804A      LDD	R4,Y+2
+    000F5 805B      LDD	R5,Y+3
+    000F6 1628      CP	R2,R24
+    000F7 0639      CPC	R3,R25
+    000F8 064A      CPC	R4,R26
+    000F9 065B      CPC	R5,R27
+    000FA F31C      BLT	0x00DE
+    000FB 9624      ADIW	R28,4
+    000FC 9508      RET
+_delay_nms:
+  i                    --> Y,+0
+  n                    --> Y,+8
+    000FD 940E 07FD CALL	push_arg4
+    000FF 940E 0852 CALL	push_xgsetF000
+    00101 9724      SBIW	R28,4
+(0093)   
+(0094) }    
+(0095) void delay_nms(long int n)//ÑÓÊ±nºÁÃë 
+(0096) { 
+(0097)   long int i; 
+(0098)   for (i=0;i<n;i++)//Ö´ÐÐn´Î1ºÁÃëÑÓÊ± 
+    00102 E080      LDI	R24,0
+    00103 8388      ST	Y,R24
+    00104 8389      STD	Y+1,R24
+    00105 838A      STD	Y+2,R24
+    00106 838B      STD	Y+3,R24
+    00107 C011      RJMP	0x0119
+(0099)   {delay_1ms();}  
+    00108 DFCF      RCALL	_delay_1ms
+    00109 E041      LDI	R20,1
+    0010A E050      LDI	R21,0
+    0010B E060      LDI	R22,0
+    0010C E070      LDI	R23,0
+    0010D 8028      LD	R2,Y
+    0010E 8039      LDD	R3,Y+1
+    0010F 804A      LDD	R4,Y+2
+    00110 805B      LDD	R5,Y+3
+    00111 0E24      ADD	R2,R20
+    00112 1E35      ADC	R3,R21
+    00113 1E46      ADC	R4,R22
+    00114 1E57      ADC	R5,R23
+    00115 8228      ST	Y,R2
+    00116 8239      STD	Y+1,R3
+    00117 824A      STD	Y+2,R4
+    00118 825B      STD	Y+3,R5
+    00119 8428      LDD	R2,Y+8
+    0011A 8439      LDD	R3,Y+9
+    0011B 844A      LDD	R4,Y+10
+    0011C 845B      LDD	R5,Y+11
+    0011D 8068      LD	R6,Y
+    0011E 8079      LDD	R7,Y+1
+    0011F 808A      LDD	R8,Y+2
+    00120 809B      LDD	R9,Y+3
+    00121 1462      CP	R6,R2
+    00122 0473      CPC	R7,R3
+    00123 0484      CPC	R8,R4
+    00124 0495      CPC	R9,R5
+    00125 F314      BLT	0x0108
+    00126 9624      ADIW	R28,4
+    00127 940E 0857 CALL	pop_xgsetF000
+    00129 9624      ADIW	R28,4
+    0012A 9508      RET
+_action_set:
+  action_do_last       --> Y,+20
+  ch_3c                --> R10
+  ch_3b                --> R12
+  ch_3a                --> R14
+  ch_1c                --> R20
+  ch_1b                --> Y,+10
+  ch_1a                --> R22
+    0012B 933A      ST	-Y,R19
+    0012C 932A      ST	-Y,R18
+    0012D 940E 0847 CALL	push_xgsetF0FC
+    0012F 01B8      MOVW	R22,R16
+    00130 854C      LDD	R20,Y+12
+    00131 855D      LDD	R21,Y+13
+    00132 84EE      LDD	R14,Y+14
+    00133 84FF      LDD	R15,Y+15
+    00134 88C8      LDD	R12,Y+16
+    00135 88D9      LDD	R13,Y+17
+    00136 88AA      LDD	R10,Y+18
+    00137 88BB      LDD	R11,Y+19
+(0100) } 
+(0101) 
+(0102) void action_set(int ch_1a, int ch_1b, int ch_1c, int ch_3a, int ch_3b, int ch_3c, int action_do_last)
+(0103) {
+(0104)     OCR1A=ch_1a/2+1680;   //1
+    00138 E022      LDI	R18,2
+    00139 E030      LDI	R19,0
+    0013A 018B      MOVW	R16,R22
+    0013B 940E 0806 CALL	div16s
+    0013D 01C8      MOVW	R24,R16
+    0013E 5780      SUBI	R24,0x70
+    0013F 4F99      SBCI	R25,0xF9
+    00140 BD9B      OUT	0x2B,R25
+    00141 BD8A      OUT	0x2A,R24
+(0105) 	OCR1B=ch_1b/2+1620;   //2
+    00142 E022      LDI	R18,2
+    00143 E030      LDI	R19,0
+    00144 850A      LDD	R16,Y+10
+    00145 851B      LDD	R17,Y+11
+    00146 940E 0806 CALL	div16s
+    00148 01C8      MOVW	R24,R16
+    00149 5A8C      SUBI	R24,0xAC
+    0014A 4F99      SBCI	R25,0xF9
+    0014B BD99      OUT	0x29,R25
+    0014C BD88      OUT	0x28,R24
+(0106) 	OCR1C=ch_1c/2+1680;   //3
+    0014D E022      LDI	R18,2
+    0014E E030      LDI	R19,0
+    0014F 018A      MOVW	R16,R20
+    00150 940E 0806 CALL	div16s
+    00152 01C8      MOVW	R24,R16
+    00153 5780      SUBI	R24,0x70
+    00154 4F99      SBCI	R25,0xF9
+    00155 9390 0079 STS	0x79,R25
+    00157 9380 0078 STS	0x78,R24
+(0107) 	OCR3A=ch_3a/2+1700;   //4
+    00159 E022      LDI	R18,2
+    0015A E030      LDI	R19,0
+    0015B 0187      MOVW	R16,R14
+    0015C 940E 0806 CALL	div16s
+    0015E 01C8      MOVW	R24,R16
+    0015F 558C      SUBI	R24,0x5C
+    00160 4F99      SBCI	R25,0xF9
+    00161 9390 0087 STS	0x87,R25
+    00163 9380 0086 STS	0x86,R24
+(0108) 	OCR3B=ch_3b/2+1550;   //5
+    00165 E022      LDI	R18,2
+    00166 E030      LDI	R19,0
+    00167 0186      MOVW	R16,R12
+    00168 940E 0806 CALL	div16s
+    0016A 01C8      MOVW	R24,R16
+    0016B 5F82      SUBI	R24,0xF2
+    0016C 4F99      SBCI	R25,0xF9
+    0016D 9390 0085 STS	0x85,R25
+    0016F 9380 0084 STS	0x84,R24
+(0109) 	OCR3C=ch_3c/2+1700;   //6
+    00171 E022      LDI	R18,2
+    00172 E030      LDI	R19,0
+    00173 0185      MOVW	R16,R10
+    00174 940E 0806 CALL	div16s
+    00176 01C8      MOVW	R24,R16
+    00177 558C      SUBI	R24,0x5C
+    00178 4F99      SBCI	R25,0xF9
+    00179 9390 0083 STS	0x83,R25
+    0017B 9380 0082 STS	0x82,R24
+    0017D 940E 083C CALL	pop_xgsetF0FC
+    0017F 9622      ADIW	R28,2
+    00180 9508      RET
+_action_base:
+  number               --> R20
+    00181 934A      ST	-Y,R20
+    00182 935A      ST	-Y,R21
+    00183 01A8      MOVW	R20,R16
+    00184 972A      SBIW	R28,0xA
+(0110) 	/*
+(0111) OCR1C=1680;   //2000---3000--4000
+(0112) OCR1B=1780;
+(0113) OCR1A=1640;
+(0114) OCR3C=1620;
+(0115) OCR3B=1600;
+(0116) OCR3A=1800;
+(0117) */
+(0118) }
+(0119) 
+(0120) void action_base(int number)
+(0121) { 
+(0122) switch(number)
+    00185 3040      CPI	R20,0
+    00186 E0E0      LDI	R30,0
+    00187 075E      CPC	R21,R30
+    00188 F40C      BGE	0x018A
+    00189 C248      RJMP	0x03D2
+    0018A E188      LDI	R24,0x18
+    0018B E090      LDI	R25,0
+    0018C 1784      CP	R24,R20
+    0018D 0795      CPC	R25,R21
+    0018E F40C      BGE	0x0190
+    0018F C242      RJMP	0x03D2
+    00190 E88C      LDI	R24,0x8C
+    00191 E090      LDI	R25,0
+    00192 01FA      MOVW	R30,R20
+    00193 0FEE      LSL	R30
+    00194 1FFF      ROL	R31
+    00195 0FE8      ADD	R30,R24
+    00196 1FF9      ADC	R31,R25
+    00197 9027      ELPM	R2,Z+
+    00198 9036      ELPM	R3,Z
+    00199 01F1      MOVW	R30,R2
+    0019A 9409      IJMP
+(0123) {
+(0124) case 0:
+(0125) action_set(0,0,0,0,0,0,100);
+    0019B E684      LDI	R24,0x64
+    0019C E090      LDI	R25,0
+    0019D 8799      STD	Y+9,R25
+    0019E 8788      STD	Y+8,R24
+    0019F 2422      CLR	R2
+    001A0 2433      CLR	R3
+    001A1 823F      STD	Y+7,R3
+    001A2 822E      STD	Y+6,R2
+    001A3 823D      STD	Y+5,R3
+    001A4 822C      STD	Y+4,R2
+    001A5 823B      STD	Y+3,R3
+    001A6 822A      STD	Y+2,R2
+    001A7 8239      STD	Y+1,R3
+    001A8 8228      ST	Y,R2
+    001A9 2722      CLR	R18
+    001AA 2733      CLR	R19
+    001AB 2700      CLR	R16
+    001AC 2711      CLR	R17
+    001AD DF7D      RCALL	_action_set
+(0126) break; //Ö±Á¢
+    001AE C223      RJMP	0x03D2
+(0127) //case 1:{action_set(0,0,-200,700,0,0,50);break;} //ÓÒ½Å×óÇã											   #####
+(0128) case 1:
+(0129) action_set(400,400,0,400,0,0,40);
+    001AF E288      LDI	R24,0x28
+    001B0 E090      LDI	R25,0
+    001B1 8799      STD	Y+9,R25
+    001B2 8788      STD	Y+8,R24
+    001B3 2422      CLR	R2
+    001B4 2433      CLR	R3
+    001B5 823F      STD	Y+7,R3
+    001B6 822E      STD	Y+6,R2
+    001B7 823D      STD	Y+5,R3
+    001B8 822C      STD	Y+4,R2
+    001B9 E980      LDI	R24,0x90
+    001BA E091      LDI	R25,1
+    001BB 839B      STD	Y+3,R25
+    001BC 838A      STD	Y+2,R24
+    001BD 8239      STD	Y+1,R3
+    001BE 8228      ST	Y,R2
+    001BF E920      LDI	R18,0x90
+    001C0 E031      LDI	R19,1
+    001C1 E900      LDI	R16,0x90
+    001C2 E011      LDI	R17,1
+    001C3 DF67      RCALL	_action_set
+(0130) break; //×ó½Å×óÇã	  			-300/-400						#####
+    001C4 C20D      RJMP	0x03D2
+(0131) case 2:
+(0132) action_set(-300,-300,0,0,-200,0,40);
+    001C5 E288      LDI	R24,0x28
+    001C6 E090      LDI	R25,0
+    001C7 8799      STD	Y+9,R25
+    001C8 8788      STD	Y+8,R24
+    001C9 2422      CLR	R2
+    001CA 2433      CLR	R3
+    001CB 823F      STD	Y+7,R3
+    001CC 822E      STD	Y+6,R2
+    001CD E388      LDI	R24,0x38
+    001CE EF9F      LDI	R25,0xFF
+    001CF 839D      STD	Y+5,R25
+    001D0 838C      STD	Y+4,R24
+    001D1 823B      STD	Y+3,R3
+    001D2 822A      STD	Y+2,R2
+    001D3 8239      STD	Y+1,R3
+    001D4 8228      ST	Y,R2
+    001D5 ED24      LDI	R18,0xD4
+    001D6 EF3E      LDI	R19,0xFE
+    001D7 ED04      LDI	R16,0xD4
+    001D8 EF1E      LDI	R17,0xFE
+    001D9 DF51      RCALL	_action_set
+(0133) break; //ÓÒÌ§½Å£¬Í¬Ê±ÓÒ½Å·ÅÆ½							 #####
+    001DA C1F7      RJMP	0x03D2
+(0134) //case 4:{action_set(700,700,-350,-400,700,700,50);break;} //×óÍä½Å 3,4¿ÉÒÔÒ»ÆðÍê³É
+(0135) //case 5:{action_set(700,700,0,0,700,700,50);break;} //×ªÕý	
+(0136) case 3:
+(0137) action_set(50,0,-150,50,400,400,75);
+    001DB E48B      LDI	R24,0x4B
+    001DC E090      LDI	R25,0
+    001DD 8799      STD	Y+9,R25
+    001DE 8788      STD	Y+8,R24
+    001DF E980      LDI	R24,0x90
+    001E0 E091      LDI	R25,1
+    001E1 839F      STD	Y+7,R25
+    001E2 838E      STD	Y+6,R24
+    001E3 839D      STD	Y+5,R25
+    001E4 838C      STD	Y+4,R24
+    001E5 E382      LDI	R24,0x32
+    001E6 E090      LDI	R25,0
+    001E7 839B      STD	Y+3,R25
+    001E8 838A      STD	Y+2,R24
+    001E9 E68A      LDI	R24,0x6A
+    001EA EF9F      LDI	R25,0xFF
+    001EB 8399      STD	Y+1,R25
+    001EC 8388      ST	Y,R24
+    001ED 2722      CLR	R18
+    001EE 2733      CLR	R19
+    001EF E302      LDI	R16,0x32
+    001F0 E010      LDI	R17,0
+    001F1 DF39      RCALL	_action_set
+(0138) break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ#####
+    001F2 C1DF      RJMP	0x03D2
+(0139) case 4:
+(0140) action_set(100,100,-50,100,350,350,50);
+    001F3 E382      LDI	R24,0x32
+    001F4 E090      LDI	R25,0
+    001F5 8799      STD	Y+9,R25
+    001F6 8788      STD	Y+8,R24
+    001F7 E58E      LDI	R24,0x5E
+    001F8 E091      LDI	R25,1
+    001F9 839F      STD	Y+7,R25
+    001FA 838E      STD	Y+6,R24
+    001FB 839D      STD	Y+5,R25
+    001FC 838C      STD	Y+4,R24
+    001FD E684      LDI	R24,0x64
+    001FE E090      LDI	R25,0
+    001FF 839B      STD	Y+3,R25
+    00200 838A      STD	Y+2,R24
+    00201 EC8E      LDI	R24,0xCE
+    00202 EF9F      LDI	R25,0xFF
+    00203 8399      STD	Y+1,R25
+    00204 8388      ST	Y,R24
+    00205 E624      LDI	R18,0x64
+    00206 E030      LDI	R19,0
+    00207 E604      LDI	R16,0x64
+    00208 E010      LDI	R17,0
+    00209 DF21      RCALL	_action_set
+(0141) break; //×ó½ÅÓÒÇã	 	Ç°Çã								  #####
+    0020A C1C7      RJMP	0x03D2
+(0142) //case 8:{action_set(400,700,-750,300,700,1000,50);break;} //ÓÒ½ÅÓÒÇã£¬¶ÈÊý»¹µÃ¼õÐ¡	 
+(0143) case 5:
+(0144) action_set(200,300,0,50,0,200,50);
+    0020B E382      LDI	R24,0x32
+    0020C E090      LDI	R25,0
+    0020D 8799      STD	Y+9,R25
+    0020E 8788      STD	Y+8,R24
+    0020F EC88      LDI	R24,0xC8
+    00210 839F      STD	Y+7,R25
+    00211 838E      STD	Y+6,R24
+    00212 2422      CLR	R2
+    00213 2433      CLR	R3
+    00214 823D      STD	Y+5,R3
+    00215 822C      STD	Y+4,R2
+    00216 E382      LDI	R24,0x32
+    00217 839B      STD	Y+3,R25
+    00218 838A      STD	Y+2,R24
+    00219 8239      STD	Y+1,R3
+    0021A 8228      ST	Y,R2
+    0021B E22C      LDI	R18,0x2C
+    0021C E031      LDI	R19,1
+    0021D EC08      LDI	R16,0xC8
+    0021E E010      LDI	R17,0
+    0021F DF0B      RCALL	_action_set
+(0145) break; //ÓÒ½ÅÁ¢Õý  £¬Ç°Çã
+    00220 C1B1      RJMP	0x03D2
+(0146) case 6:
+(0147) action_set(0,0,-25,100,0,0,25);
+    00221 E189      LDI	R24,0x19
+    00222 E090      LDI	R25,0
+    00223 8799      STD	Y+9,R25
+    00224 8788      STD	Y+8,R24
+    00225 2422      CLR	R2
+    00226 2433      CLR	R3
+    00227 823F      STD	Y+7,R3
+    00228 822E      STD	Y+6,R2
+    00229 823D      STD	Y+5,R3
+    0022A 822C      STD	Y+4,R2
+    0022B E684      LDI	R24,0x64
+    0022C 839B      STD	Y+3,R25
+    0022D 838A      STD	Y+2,R24
+    0022E EE87      LDI	R24,0xE7
+    0022F EF9F      LDI	R25,0xFF
+    00230 8399      STD	Y+1,R25
+    00231 8388      ST	Y,R24
+    00232 2722      CLR	R18
+    00233 2733      CLR	R19
+    00234 2700      CLR	R16
+    00235 2711      CLR	R17
+    00236 DEF4      RCALL	_action_set
+(0148) break; //×ó½Å»ØÕý	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####
+    00237 C19A      RJMP	0x03D2
+(0149) case 7:
+(0150) action_set(-300,-300,0,100,0,0,25);
+    00238 E189      LDI	R24,0x19
+    00239 E090      LDI	R25,0
+    0023A 8799      STD	Y+9,R25
+    0023B 8788      STD	Y+8,R24
+    0023C 2422      CLR	R2
+    0023D 2433      CLR	R3
+    0023E 823F      STD	Y+7,R3
+    0023F 822E      STD	Y+6,R2
+    00240 823D      STD	Y+5,R3
+    00241 822C      STD	Y+4,R2
+    00242 E684      LDI	R24,0x64
+    00243 839B      STD	Y+3,R25
+    00244 838A      STD	Y+2,R24
+    00245 8239      STD	Y+1,R3
+    00246 8228      ST	Y,R2
+    00247 ED24      LDI	R18,0xD4
+    00248 EF3E      LDI	R19,0xFE
+    00249 ED04      LDI	R16,0xD4
+    0024A EF1E      LDI	R17,0xFE
+    0024B DEDF      RCALL	_action_set
+(0151) break; //×óÌ§½Å										   #####
+    0024C C185      RJMP	0x03D2
+(0152) //case 12:{action_set(-700,-700,400,300,-700,-700,50);break;} //ÓÒÍä½Å	11,12¿ÉÒÔÒ»ÆðÍê³É £¬Ç°½ÅÎ´×ÅµØ
+(0153) //case 13:{action_set(-700,-700,0,0,-700,-700,50);break;} //ÓÒ×ªÕý 
+(0154) case 8:
+(0155) action_set(-500,-300,0,0,-300,-500,75);
+    0024D E48B      LDI	R24,0x4B
+    0024E E090      LDI	R25,0
+    0024F 8799      STD	Y+9,R25
+    00250 8788      STD	Y+8,R24
+    00251 E08C      LDI	R24,0xC
+    00252 EF9E      LDI	R25,0xFE
+    00253 839F      STD	Y+7,R25
+    00254 838E      STD	Y+6,R24
+    00255 ED84      LDI	R24,0xD4
+    00256 839D      STD	Y+5,R25
+    00257 838C      STD	Y+4,R24
+    00258 2422      CLR	R2
+    00259 2433      CLR	R3
+    0025A 823B      STD	Y+3,R3
+    0025B 822A      STD	Y+2,R2
+    0025C 8239      STD	Y+1,R3
+    0025D 8228      ST	Y,R2
+    0025E ED24      LDI	R18,0xD4
+    0025F EF3E      LDI	R19,0xFE
+    00260 E00C      LDI	R16,0xC
+    00261 EF1E      LDI	R17,0xFE
+    00262 DEC8      RCALL	_action_set
+(0156) break; //Ç°Çã£¬1ºÅ¶æ»ú-500£¬6ºÅ¶æ»ú+500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ£¬×ó½ÅÉÔÍä##### 
+    00263 C16E      RJMP	0x03D2
+(0157) case 9:
+(0158) action_set(-500,-300,-150,-150,-300,-500,50);
+    00264 E382      LDI	R24,0x32
+    00265 E090      LDI	R25,0
+    00266 8799      STD	Y+9,R25
+    00267 8788      STD	Y+8,R24
+    00268 E08C      LDI	R24,0xC
+    00269 EF9E      LDI	R25,0xFE
+    0026A 839F      STD	Y+7,R25
+    0026B 838E      STD	Y+6,R24
+    0026C ED84      LDI	R24,0xD4
+    0026D 839D      STD	Y+5,R25
+    0026E 838C      STD	Y+4,R24
+    0026F E68A      LDI	R24,0x6A
+    00270 EF9F      LDI	R25,0xFF
+    00271 839B      STD	Y+3,R25
+    00272 838A      STD	Y+2,R24
+    00273 8399      STD	Y+1,R25
+    00274 8388      ST	Y,R24
+    00275 ED24      LDI	R18,0xD4
+    00276 EF3E      LDI	R19,0xFE
+    00277 E00C      LDI	R16,0xC
+    00278 EF1E      LDI	R17,0xFE
+    00279 DEB1      RCALL	_action_set
+(0159) break; //ÓÒ½Å×óÇã   	Ç°Çã								#####
+    0027A C157      RJMP	0x03D2
+(0160) //case 16:{action_set(-1000,-700,-250,-350,-700,-400,50);break;} //×ó½Å×óÇã   
+(0161) case 10:
+(0162) action_set(0,0,-150,-100,-300,-600,50);
+    0027B E382      LDI	R24,0x32
+    0027C E090      LDI	R25,0
+    0027D 8799      STD	Y+9,R25
+    0027E 8788      STD	Y+8,R24
+    0027F EA88      LDI	R24,0xA8
+    00280 EF9D      LDI	R25,0xFD
+    00281 839F      STD	Y+7,R25
+    00282 838E      STD	Y+6,R24
+    00283 ED84      LDI	R24,0xD4
+    00284 EF9E      LDI	R25,0xFE
+    00285 839D      STD	Y+5,R25
+    00286 838C      STD	Y+4,R24
+    00287 E98C      LDI	R24,0x9C
+    00288 EF9F      LDI	R25,0xFF
+    00289 839B      STD	Y+3,R25
+    0028A 838A      STD	Y+2,R24
+    0028B E68A      LDI	R24,0x6A
+    0028C 8399      STD	Y+1,R25
+    0028D 8388      ST	Y,R24
+    0028E 2722      CLR	R18
+    0028F 2733      CLR	R19
+    00290 2700      CLR	R16
+    00291 2711      CLR	R17
+    00292 DE98      RCALL	_action_set
+(0163) break; //×óÁ¢Õý£¬Ç°Çã
+    00293 C13E      RJMP	0x03D2
+(0164) //case 10:{action_set(0,0,-300,0,0,0,75);break;} //ÓÒ»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0		  #####
+(0165) 
+(0166) case 11:
+(0167) action_set(0,0,-200,0,-300,-400,50);
+    00294 E382      LDI	R24,0x32
+    00295 E090      LDI	R25,0
+    00296 8799      STD	Y+9,R25
+    00297 8788      STD	Y+8,R24
+    00298 E780      LDI	R24,0x70
+    00299 EF9E      LDI	R25,0xFE
+    0029A 839F      STD	Y+7,R25
+    0029B 838E      STD	Y+6,R24
+    0029C ED84      LDI	R24,0xD4
+    0029D 839D      STD	Y+5,R25
+    0029E 838C      STD	Y+4,R24
+    0029F 2422      CLR	R2
+    002A0 2433      CLR	R3
+    002A1 823B      STD	Y+3,R3
+    002A2 822A      STD	Y+2,R2
+    002A3 E388      LDI	R24,0x38
+    002A4 EF9F      LDI	R25,0xFF
+    002A5 8399      STD	Y+1,R25
+    002A6 8388      ST	Y,R24
+    002A7 2722      CLR	R18
+    002A8 2733      CLR	R19
+    002A9 2700      CLR	R16
+    002AA 2711      CLR	R17
+    002AB DE7F      RCALL	_action_set
+(0168) break; //ÓÒºóÌ§½Å£¬Í¬Ê±Ò½Å·ÅÆ½							 #####
+    002AC C125      RJMP	0x03D2
+(0169) case 12:
+(0170) action_set(-650,-300,0,0,-300,-550,75);
+    002AD E48B      LDI	R24,0x4B
+    002AE E090      LDI	R25,0
+    002AF 8799      STD	Y+9,R25
+    002B0 8788      STD	Y+8,R24
+    002B1 ED8A      LDI	R24,0xDA
+    002B2 EF9D      LDI	R25,0xFD
+    002B3 839F      STD	Y+7,R25
+    002B4 838E      STD	Y+6,R24
+    002B5 ED84      LDI	R24,0xD4
+    002B6 EF9E      LDI	R25,0xFE
+    002B7 839D      STD	Y+5,R25
+    002B8 838C      STD	Y+4,R24
+    002B9 2422      CLR	R2
+    002BA 2433      CLR	R3
+    002BB 823B      STD	Y+3,R3
+    002BC 822A      STD	Y+2,R2
+    002BD 8239      STD	Y+1,R3
+    002BE 8228      ST	Y,R2
+    002BF ED24      LDI	R18,0xD4
+    002C0 EF3E      LDI	R19,0xFE
+    002C1 E706      LDI	R16,0x76
+    002C2 EF1D      LDI	R17,0xFD
+    002C3 DE67      RCALL	_action_set
+(0171) break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬ÖØÐÄ×ªÒÆµ½ºó½Å£¬ÓÒ½ÅÉÔÍä#####
+    002C4 C10D      RJMP	0x03D2
+(0172) case 13:
+(0173) action_set(-550,-300,0,60,-100,-350,50);
+    002C5 E382      LDI	R24,0x32
+    002C6 E090      LDI	R25,0
+    002C7 8799      STD	Y+9,R25
+    002C8 8788      STD	Y+8,R24
+    002C9 EA82      LDI	R24,0xA2
+    002CA EF9E      LDI	R25,0xFE
+    002CB 839F      STD	Y+7,R25
+    002CC 838E      STD	Y+6,R24
+    002CD E98C      LDI	R24,0x9C
+    002CE EF9F      LDI	R25,0xFF
+    002CF 839D      STD	Y+5,R25
+    002D0 838C      STD	Y+4,R24
+    002D1 E38C      LDI	R24,0x3C
+    002D2 E090      LDI	R25,0
+    002D3 839B      STD	Y+3,R25
+    002D4 838A      STD	Y+2,R24
+    002D5 2422      CLR	R2
+    002D6 2433      CLR	R3
+    002D7 8239      STD	Y+1,R3
+    002D8 8228      ST	Y,R2
+    002D9 ED24      LDI	R18,0xD4
+    002DA EF3E      LDI	R19,0xFE
+    002DB ED0A      LDI	R16,0xDA
+    002DC EF1D      LDI	R17,0xFD
+    002DD DE4D      RCALL	_action_set
+(0174) break; //½ÅÓÒÇã	 	
+    002DE C0F3      RJMP	0x03D2
+(0175) case 14:action_set(-450,-300,0,120,0,0,50);
+    002DF E382      LDI	R24,0x32
+    002E0 E090      LDI	R25,0
+    002E1 8799      STD	Y+9,R25
+    002E2 8788      STD	Y+8,R24
+    002E3 2422      CLR	R2
+    002E4 2433      CLR	R3
+    002E5 823F      STD	Y+7,R3
+    002E6 822E      STD	Y+6,R2
+    002E7 823D      STD	Y+5,R3
+    002E8 822C      STD	Y+4,R2
+    002E9 E788      LDI	R24,0x78
+    002EA 839B      STD	Y+3,R25
+    002EB 838A      STD	Y+2,R24
+    002EC 8239      STD	Y+1,R3
+    002ED 8228      ST	Y,R2
+    002EE ED24      LDI	R18,0xD4
+    002EF EF3E      LDI	R19,0xFE
+    002F0 E30E      LDI	R16,0x3E
+    002F1 EF1E      LDI	R17,0xFE
+    002F2 DE38      RCALL	_action_set
+(0176) break; //ÓÒ½Å»ØÕý	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####								  #####
+    002F3 C0DE      RJMP	0x03D2
+(0177) case 15:
+(0178) action_set(0,0,0,120,0,0,40);
+    002F4 E288      LDI	R24,0x28
+    002F5 E090      LDI	R25,0
+    002F6 8799      STD	Y+9,R25
+    002F7 8788      STD	Y+8,R24
+    002F8 2422      CLR	R2
+    002F9 2433      CLR	R3
+    002FA 823F      STD	Y+7,R3
+    002FB 822E      STD	Y+6,R2
+    002FC 823D      STD	Y+5,R3
+    002FD 822C      STD	Y+4,R2
+    002FE E788      LDI	R24,0x78
+    002FF 839B      STD	Y+3,R25
+    00300 838A      STD	Y+2,R24
+    00301 8239      STD	Y+1,R3
+    00302 8228      ST	Y,R2
+    00303 2722      CLR	R18
+    00304 2733      CLR	R19
+    00305 2700      CLR	R16
+    00306 2711      CLR	R17
+    00307 DE23      RCALL	_action_set
+(0179) break; //ÓÒ½Å»ØÕý	 	Í¬Ê±£¬×ó½Å·ÅÆ½£¬È¡ÏûÇ°Çã			   #####
+    00308 C0C9      RJMP	0x03D2
+(0180) case 16:
+(0181) action_set(300,300,0,50,0,0,40);
+    00309 E288      LDI	R24,0x28
+    0030A E090      LDI	R25,0
+    0030B 8799      STD	Y+9,R25
+    0030C 8788      STD	Y+8,R24
+    0030D 2422      CLR	R2
+    0030E 2433      CLR	R3
+    0030F 823F      STD	Y+7,R3
+    00310 822E      STD	Y+6,R2
+    00311 823D      STD	Y+5,R3
+    00312 822C      STD	Y+4,R2
+    00313 E382      LDI	R24,0x32
+    00314 839B      STD	Y+3,R25
+    00315 838A      STD	Y+2,R24
+    00316 8239      STD	Y+1,R3
+    00317 8228      ST	Y,R2
+    00318 E22C      LDI	R18,0x2C
+    00319 E031      LDI	R19,1
+    0031A E20C      LDI	R16,0x2C
+    0031B E011      LDI	R17,1
+    0031C DE0E      RCALL	_action_set
+(0182) break; //×óºóÌ§½Å										   #####
+    0031D C0B4      RJMP	0x03D2
+(0183) case 17:
+(0184) action_set(300,300,0,0,200,200,50);
+    0031E E382      LDI	R24,0x32
+    0031F E090      LDI	R25,0
+    00320 8799      STD	Y+9,R25
+    00321 8788      STD	Y+8,R24
+    00322 EC88      LDI	R24,0xC8
+    00323 839F      STD	Y+7,R25
+    00324 838E      STD	Y+6,R24
+    00325 839D      STD	Y+5,R25
+    00326 838C      STD	Y+4,R24
+    00327 2422      CLR	R2
+    00328 2433      CLR	R3
+    00329 823B      STD	Y+3,R3
+    0032A 822A      STD	Y+2,R2
+    0032B 8239      STD	Y+1,R3
+    0032C 8228      ST	Y,R2
+    0032D E22C      LDI	R18,0x2C
+    0032E E031      LDI	R19,1
+    0032F E20C      LDI	R16,0x2C
+    00330 E011      LDI	R17,1
+    00331 DDF9      RCALL	_action_set
+(0185) break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ##### 
+    00332 C09F      RJMP	0x03D2
+(0186) case 18:
+(0187) action_set(400,400,-100,-150,300,300,50);
+    00333 E382      LDI	R24,0x32
+    00334 E090      LDI	R25,0
+    00335 8799      STD	Y+9,R25
+    00336 8788      STD	Y+8,R24
+    00337 E28C      LDI	R24,0x2C
+    00338 E091      LDI	R25,1
+    00339 839F      STD	Y+7,R25
+    0033A 838E      STD	Y+6,R24
+    0033B 839D      STD	Y+5,R25
+    0033C 838C      STD	Y+4,R24
+    0033D E68A      LDI	R24,0x6A
+    0033E EF9F      LDI	R25,0xFF
+    0033F 839B      STD	Y+3,R25
+    00340 838A      STD	Y+2,R24
+    00341 E98C      LDI	R24,0x9C
+    00342 8399      STD	Y+1,R25
+    00343 8388      ST	Y,R24
+    00344 E920      LDI	R18,0x90
+    00345 E031      LDI	R19,1
+    00346 E900      LDI	R16,0x90
+    00347 E011      LDI	R17,1
+    00348 DDE2      RCALL	_action_set
+(0188) break; //½Å×óÇã   									#####
+    00349 C088      RJMP	0x03D2
+(0189) case 19:
+(0190) action_set(0,0,-200,-150,300,600,50);
+    0034A E382      LDI	R24,0x32
+    0034B E090      LDI	R25,0
+    0034C 8799      STD	Y+9,R25
+    0034D 8788      STD	Y+8,R24
+    0034E E588      LDI	R24,0x58
+    0034F E092      LDI	R25,2
+    00350 839F      STD	Y+7,R25
+    00351 838E      STD	Y+6,R24
+    00352 E28C      LDI	R24,0x2C
+    00353 E091      LDI	R25,1
+    00354 839D      STD	Y+5,R25
+    00355 838C      STD	Y+4,R24
+    00356 E68A      LDI	R24,0x6A
+    00357 EF9F      LDI	R25,0xFF
+    00358 839B      STD	Y+3,R25
+    00359 838A      STD	Y+2,R24
+    0035A E388      LDI	R24,0x38
+    0035B 8399      STD	Y+1,R25
+    0035C 8388      ST	Y,R24
+    0035D 2722      CLR	R18
+    0035E 2733      CLR	R19
+    0035F 2700      CLR	R16
+    00360 2711      CLR	R17
+    00361 DDC9      RCALL	_action_set
+(0191) break; //½Å×óÇã   									#####
+    00362 C06F      RJMP	0x03D2
+(0192) case 20:
+(0193) action_set(0,0,-200,0,0,0,50);
+    00363 E382      LDI	R24,0x32
+    00364 E090      LDI	R25,0
+    00365 8799      STD	Y+9,R25
+    00366 8788      STD	Y+8,R24
+    00367 2422      CLR	R2
+    00368 2433      CLR	R3
+    00369 823F      STD	Y+7,R3
+    0036A 822E      STD	Y+6,R2
+    0036B 823D      STD	Y+5,R3
+    0036C 822C      STD	Y+4,R2
+    0036D 823B      STD	Y+3,R3
+    0036E 822A      STD	Y+2,R2
+    0036F E388      LDI	R24,0x38
+    00370 EF9F      LDI	R25,0xFF
+    00371 8399      STD	Y+1,R25
+    00372 8388      ST	Y,R24
+    00373 2722      CLR	R18
+    00374 2733      CLR	R19
+    00375 2700      CLR	R16
+    00376 2711      CLR	R17
+    00377 DDB3      RCALL	_action_set
+(0194) break; //×ó»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0		  #####
+    00378 C059      RJMP	0x03D2
+(0195) case 21:
+(0196) action_set(50,200,200,0,0,300,300);
+    00379 E28C      LDI	R24,0x2C
+    0037A E091      LDI	R25,1
+    0037B 8799      STD	Y+9,R25
+    0037C 8788      STD	Y+8,R24
+    0037D 839F      STD	Y+7,R25
+    0037E 838E      STD	Y+6,R24
+    0037F 2422      CLR	R2
+    00380 2433      CLR	R3
+    00381 823D      STD	Y+5,R3
+    00382 822C      STD	Y+4,R2
+    00383 823B      STD	Y+3,R3
+    00384 822A      STD	Y+2,R2
+    00385 EC88      LDI	R24,0xC8
+    00386 E090      LDI	R25,0
+    00387 8399      STD	Y+1,R25
+    00388 8388      ST	Y,R24
+    00389 EC28      LDI	R18,0xC8
+    0038A E030      LDI	R19,0
+    0038B E302      LDI	R16,0x32
+    0038C E010      LDI	R17,0
+    0038D DD9D      RCALL	_action_set
+(0197) break; //ºóÇã£¬1ºÅ¶æ»ú+500£¬6ºÅ¶æ»ú-500£¬°ÑÖØÐÄ×ªÒÆµ½Ç°½ÅÉÏ##### 
+    0038E C043      RJMP	0x03D2
+(0198) case 22:
+(0199) action_set(300,300,-150,-100,400,400,50);
+    0038F E382      LDI	R24,0x32
+    00390 E090      LDI	R25,0
+    00391 8799      STD	Y+9,R25
+    00392 8788      STD	Y+8,R24
+    00393 E980      LDI	R24,0x90
+    00394 E091      LDI	R25,1
+    00395 839F      STD	Y+7,R25
+    00396 838E      STD	Y+6,R24
+    00397 839D      STD	Y+5,R25
+    00398 838C      STD	Y+4,R24
+    00399 E98C      LDI	R24,0x9C
+    0039A EF9F      LDI	R25,0xFF
+    0039B 839B      STD	Y+3,R25
+    0039C 838A      STD	Y+2,R24
+    0039D E68A      LDI	R24,0x6A
+    0039E 8399      STD	Y+1,R25
+    0039F 8388      ST	Y,R24
+    003A0 E22C      LDI	R18,0x2C
+    003A1 E031      LDI	R19,1
+    003A2 E20C      LDI	R16,0x2C
+    003A3 E011      LDI	R17,1
+    003A4 DD86      RCALL	_action_set
+(0200) break; //½Å×óÇã   									#####
+    003A5 C02C      RJMP	0x03D2
+(0201) case 23:
+(0202) action_set(600,300,-150,-200,0,0,50);
+    003A6 E382      LDI	R24,0x32
+    003A7 E090      LDI	R25,0
+    003A8 8799      STD	Y+9,R25
+    003A9 8788      STD	Y+8,R24
+    003AA 2422      CLR	R2
+    003AB 2433      CLR	R3
+    003AC 823F      STD	Y+7,R3
+    003AD 822E      STD	Y+6,R2
+    003AE 823D      STD	Y+5,R3
+    003AF 822C      STD	Y+4,R2
+    003B0 E388      LDI	R24,0x38
+    003B1 EF9F      LDI	R25,0xFF
+    003B2 839B      STD	Y+3,R25
+    003B3 838A      STD	Y+2,R24
+    003B4 E68A      LDI	R24,0x6A
+    003B5 8399      STD	Y+1,R25
+    003B6 8388      ST	Y,R24
+    003B7 E22C      LDI	R18,0x2C
+    003B8 E031      LDI	R19,1
+    003B9 E508      LDI	R16,0x58
+    003BA E012      LDI	R17,2
+    003BB DD6F      RCALL	_action_set
+(0203) break; //½Å×óÇã   									#####
+    003BC C015      RJMP	0x03D2
+(0204) case 24:
+(0205) action_set(0,0,0,-200,0,0,50);
+    003BD E382      LDI	R24,0x32
+    003BE E090      LDI	R25,0
+    003BF 8799      STD	Y+9,R25
+    003C0 8788      STD	Y+8,R24
+    003C1 2422      CLR	R2
+    003C2 2433      CLR	R3
+    003C3 823F      STD	Y+7,R3
+    003C4 822E      STD	Y+6,R2
+    003C5 823D      STD	Y+5,R3
+    003C6 822C      STD	Y+4,R2
+    003C7 E388      LDI	R24,0x38
+    003C8 EF9F      LDI	R25,0xFF
+    003C9 839B      STD	Y+3,R25
+    003CA 838A      STD	Y+2,R24
+    003CB 8239      STD	Y+1,R3
+    003CC 8228      ST	Y,R2
+    003CD 2722      CLR	R18
+    003CE 2733      CLR	R19
+    003CF 2700      CLR	R16
+    003D0 2711      CLR	R17
+    003D1 DD59      RCALL	_action_set
+(0206) break; //×ó»ØÕý£¬È¡ÏûÇ°Çã¿ÉÒÔ»Øµ½3£¬ÓÒÌ§½Å£¬»òÕß»Øµ½0		  #####
+    003D2 962A      ADIW	R28,0xA
+    003D3 9159      LD	R21,Y+
+    003D4 9149      LD	R20,Y+
+    003D5 9508      RET
+_action_series_do:
+    003D6 934A      ST	-Y,R20
+    003D7 935A      ST	-Y,R21
+(0207) 				
+(0208) }
+(0209) }
+(0210) 
+(0211) 
+(0212) void action_series_do()
+(0213) {switch(action_series_number)
+    003D8 9020 0102 LDS	R2,action_series_number
+    003DA 9030 0103 LDS	R3,action_series_number+1
+    003DC 01C1      MOVW	R24,R2
+    003DD 3081      CPI	R24,1
+    003DE E0E0      LDI	R30,0
+    003DF 079E      CPC	R25,R30
+    003E0 F409      BNE	0x03E2
+    003E1 C02E      RJMP	0x0410
+    003E2 3082      CPI	R24,2
+    003E3 E0E0      LDI	R30,0
+    003E4 079E      CPC	R25,R30
+    003E5 F409      BNE	0x03E7
+    003E6 C087      RJMP	0x046E
+    003E7 3083      CPI	R24,3
+    003E8 E0E0      LDI	R30,0
+    003E9 079E      CPC	R25,R30
+    003EA F409      BNE	0x03EC
+    003EB C0D7      RJMP	0x04C3
+    003EC 3084      CPI	R24,4
+    003ED E0E0      LDI	R30,0
+    003EE 079E      CPC	R25,R30
+    003EF F409      BNE	0x03F1
+    003F0 C12F      RJMP	0x0520
+    003F1 3085      CPI	R24,5
+    003F2 E0E0      LDI	R30,0
+    003F3 079E      CPC	R25,R30
+    003F4 F409      BNE	0x03F6
+    003F5 C17F      RJMP	0x0575
+    003F6 3086      CPI	R24,6
+    003F7 E0E0      LDI	R30,0
+    003F8 079E      CPC	R25,R30
+    003F9 F409      BNE	0x03FB
+    003FA C1A7      RJMP	0x05A2
+    003FB 3087      CPI	R24,7
+    003FC E0E0      LDI	R30,0
+    003FD 079E      CPC	R25,R30
+    003FE F409      BNE	0x0400
+    003FF C1CF      RJMP	0x05CF
+    00400 3088      CPI	R24,0x8
+    00401 E0E0      LDI	R30,0
+    00402 079E      CPC	R25,R30
+    00403 F409      BNE	0x0405
+    00404 C1F7      RJMP	0x05FC
+    00405 3089      CPI	R24,0x9
+    00406 E0E0      LDI	R30,0
+    00407 079E      CPC	R25,R30
+    00408 F409      BNE	0x040A
+    00409 C21F      RJMP	0x0629
+    0040A 308A      CPI	R24,0xA
+    0040B E0E0      LDI	R30,0
+    0040C 079E      CPC	R25,R30
+    0040D F409      BNE	0x040F
+    0040E C24F      RJMP	0x065E
+    0040F C272      RJMP	0x0682
+(0214) {	  
+(0215) 	case 1:
+(0216) 	{switch(action_series_step)
+    00410 9020 0100 LDS	R2,action_series_step
+    00412 9030 0101 LDS	R3,action_series_step+1
+    00414 01C1      MOVW	R24,R2
+    00415 3081      CPI	R24,1
+    00416 E0E0      LDI	R30,0
+    00417 079E      CPC	R25,R30
+    00418 F149      BEQ	0x0442
+    00419 3082      CPI	R24,2
+    0041A E0E0      LDI	R30,0
+    0041B 079E      CPC	R25,R30
+    0041C F149      BEQ	0x0446
+    0041D 3083      CPI	R24,3
+    0041E E0E0      LDI	R30,0
+    0041F 079E      CPC	R25,R30
+    00420 F149      BEQ	0x044A
+    00421 3084      CPI	R24,4
+    00422 E0E0      LDI	R30,0
+    00423 079E      CPC	R25,R30
+    00424 F149      BEQ	0x044E
+    00425 3085      CPI	R24,5
+    00426 E0E0      LDI	R30,0
+    00427 079E      CPC	R25,R30
+    00428 F149      BEQ	0x0452
+    00429 3086      CPI	R24,6
+    0042A E0E0      LDI	R30,0
+    0042B 079E      CPC	R25,R30
+    0042C F149      BEQ	0x0456
+    0042D 3087      CPI	R24,7
+    0042E E0E0      LDI	R30,0
+    0042F 079E      CPC	R25,R30
+    00430 F149      BEQ	0x045A
+    00431 3088      CPI	R24,0x8
+    00432 E0E0      LDI	R30,0
+    00433 079E      CPC	R25,R30
+    00434 F149      BEQ	0x045E
+    00435 3089      CPI	R24,0x9
+    00436 E0E0      LDI	R30,0
+    00437 079E      CPC	R25,R30
+    00438 F149      BEQ	0x0462
+    00439 308A      CPI	R24,0xA
+    0043A E0E0      LDI	R30,0
+    0043B 079E      CPC	R25,R30
+    0043C F149      BEQ	0x0466
+    0043D 308B      CPI	R24,0xB
+    0043E E0E0      LDI	R30,0
+    0043F 079E      CPC	R25,R30
+    00440 F149      BEQ	0x046A
+    00441 C240      RJMP	0x0682
+(0217) 		{case 1 : {action_base(20);break;} 
+    00442 E104      LDI	R16,0x14
+    00443 E010      LDI	R17,0
+    00444 DD3C      RCALL	_action_base
+    00445 C23C      RJMP	0x0682
+(0218)     	 case 2 : {action_base(10);break;}
+    00446 E00A      LDI	R16,0xA
+    00447 E010      LDI	R17,0
+    00448 DD38      RCALL	_action_base
+    00449 C238      RJMP	0x0682
+(0219) 		 case 3 : {action_base(9);break;}
+    0044A E009      LDI	R16,0x9
+    0044B E010      LDI	R17,0
+    0044C DD34      RCALL	_action_base
+    0044D C234      RJMP	0x0682
+(0220) 		 case 4 : {action_base(8);break;}
+    0044E E008      LDI	R16,0x8
+    0044F E010      LDI	R17,0
+    00450 DD30      RCALL	_action_base
+    00451 C230      RJMP	0x0682
+(0221) 		 case 5 : {action_base(7);break;}
+    00452 E007      LDI	R16,7
+    00453 E010      LDI	R17,0
+    00454 DD2C      RCALL	_action_base
+    00455 C22C      RJMP	0x0682
+(0222) 		 case 6 : {action_base(6);break;}
+    00456 E006      LDI	R16,6
+    00457 E010      LDI	R17,0
+    00458 DD28      RCALL	_action_base
+    00459 C228      RJMP	0x0682
+(0223) 		 case 7 : {action_base(5);break;}
+    0045A E005      LDI	R16,5
+    0045B E010      LDI	R17,0
+    0045C DD24      RCALL	_action_base
+    0045D C224      RJMP	0x0682
+(0224) 		 case 8 : {action_base(4);break;}
+    0045E E004      LDI	R16,4
+    0045F E010      LDI	R17,0
+    00460 DD20      RCALL	_action_base
+    00461 C220      RJMP	0x0682
+(0225) 		 case 9 : {action_base(3);break;}
+    00462 E003      LDI	R16,3
+    00463 E010      LDI	R17,0
+    00464 DD1C      RCALL	_action_base
+    00465 C21C      RJMP	0x0682
+(0226) 		 case 10 : {action_base(2);break;}
+    00466 E002      LDI	R16,2
+    00467 E010      LDI	R17,0
+    00468 DD18      RCALL	_action_base
+    00469 C218      RJMP	0x0682
+(0227) 		 case 11 : {action_base(1);break;}
+    0046A E001      LDI	R16,1
+    0046B E010      LDI	R17,0
+    0046C DD14      RCALL	_action_base
+(0228) 		};break;} 
+    0046D C214      RJMP	0x0682
+(0229) 	 case 2:
+(0230) 	{switch(action_series_step)
+    0046E 9140 0100 LDS	R20,action_series_step
+    00470 9150 0101 LDS	R21,action_series_step+1
+    00472 3041      CPI	R20,1
+    00473 E0E0      LDI	R30,0
+    00474 075E      CPC	R21,R30
+    00475 F129      BEQ	0x049B
+    00476 3042      CPI	R20,2
+    00477 E0E0      LDI	R30,0
+    00478 075E      CPC	R21,R30
+    00479 F129      BEQ	0x049F
+    0047A 3043      CPI	R20,3
+    0047B E0E0      LDI	R30,0
+    0047C 075E      CPC	R21,R30
+    0047D F129      BEQ	0x04A3
+    0047E 3044      CPI	R20,4
+    0047F E0E0      LDI	R30,0
+    00480 075E      CPC	R21,R30
+    00481 F129      BEQ	0x04A7
+    00482 3045      CPI	R20,5
+    00483 E0E0      LDI	R30,0
+    00484 075E      CPC	R21,R30
+    00485 F129      BEQ	0x04AB
+    00486 3046      CPI	R20,6
+    00487 E0E0      LDI	R30,0
+    00488 075E      CPC	R21,R30
+    00489 F129      BEQ	0x04AF
+    0048A 3047      CPI	R20,7
+    0048B E0E0      LDI	R30,0
+    0048C 075E      CPC	R21,R30
+    0048D F129      BEQ	0x04B3
+    0048E 3048      CPI	R20,0x8
+    0048F E0E0      LDI	R30,0
+    00490 075E      CPC	R21,R30
+    00491 F129      BEQ	0x04B7
+    00492 3049      CPI	R20,0x9
+    00493 E0E0      LDI	R30,0
+    00494 075E      CPC	R21,R30
+    00495 F129      BEQ	0x04BB
+    00496 304A      CPI	R20,0xA
+    00497 E0E0      LDI	R30,0
+    00498 075E      CPC	R21,R30
+    00499 F129      BEQ	0x04BF
+    0049A C1E7      RJMP	0x0682
+(0231) 		{case 1 : {action_base(20);break;} 
+    0049B E104      LDI	R16,0x14
+    0049C E010      LDI	R17,0
+    0049D DCE3      RCALL	_action_base
+    0049E C1E3      RJMP	0x0682
+(0232)     	 case 2 : {action_base(10);break;}
+    0049F E00A      LDI	R16,0xA
+    004A0 E010      LDI	R17,0
+    004A1 DCDF      RCALL	_action_base
+    004A2 C1DF      RJMP	0x0682
+(0233) 		 case 3 : {action_base(9);break;}
+    004A3 E009      LDI	R16,0x9
+    004A4 E010      LDI	R17,0
+    004A5 DCDB      RCALL	_action_base
+    004A6 C1DB      RJMP	0x0682
+(0234) 		 case 4 : {action_base(8);break;}
+    004A7 E008      LDI	R16,0x8
+    004A8 E010      LDI	R17,0
+    004A9 DCD7      RCALL	_action_base
+    004AA C1D7      RJMP	0x0682
+(0235) 		 case 5 : {action_base(7);break;}
+    004AB E007      LDI	R16,7
+    004AC E010      LDI	R17,0
+    004AD DCD3      RCALL	_action_base
+    004AE C1D3      RJMP	0x0682
+(0236) 		 case 6 : {action_base(6);break;}
+    004AF E006      LDI	R16,6
+    004B0 E010      LDI	R17,0
+    004B1 DCCF      RCALL	_action_base
+    004B2 C1CF      RJMP	0x0682
+(0237) 		 case 7 : {action_base(5);break;}
+    004B3 E005      LDI	R16,5
+    004B4 E010      LDI	R17,0
+    004B5 DCCB      RCALL	_action_base
+    004B6 C1CB      RJMP	0x0682
+(0238) 		 case 8 : {action_base(4);break;}
+    004B7 E004      LDI	R16,4
+    004B8 E010      LDI	R17,0
+    004B9 DCC7      RCALL	_action_base
+    004BA C1C7      RJMP	0x0682
+(0239) 		 case 9 : {action_base(3);break;}
+    004BB E003      LDI	R16,3
+    004BC E010      LDI	R17,0
+    004BD DCC3      RCALL	_action_base
+    004BE C1C3      RJMP	0x0682
+(0240) 		 case 10 : {action_base(2);break;}
+    004BF E002      LDI	R16,2
+    004C0 E010      LDI	R17,0
+    004C1 DCBF      RCALL	_action_base
+(0241) 		};break;}
+    004C2 C1BF      RJMP	0x0682
+(0242) 
+(0243) 		case 3:
+(0244) 	{switch(action_series_step)
+    004C3 9140 0100 LDS	R20,action_series_step
+    004C5 9150 0101 LDS	R21,action_series_step+1
+    004C7 3041      CPI	R20,1
+    004C8 E0E0      LDI	R30,0
+    004C9 075E      CPC	R21,R30
+    004CA F149      BEQ	0x04F4
+    004CB 3042      CPI	R20,2
+    004CC E0E0      LDI	R30,0
+    004CD 075E      CPC	R21,R30
+    004CE F149      BEQ	0x04F8
+    004CF 3043      CPI	R20,3
+    004D0 E0E0      LDI	R30,0
+    004D1 075E      CPC	R21,R30
+    004D2 F149      BEQ	0x04FC
+    004D3 3044      CPI	R20,4
+    004D4 E0E0      LDI	R30,0
+    004D5 075E      CPC	R21,R30
+    004D6 F149      BEQ	0x0500
+    004D7 3045      CPI	R20,5
+    004D8 E0E0      LDI	R30,0
+    004D9 075E      CPC	R21,R30
+    004DA F149      BEQ	0x0504
+    004DB 3046      CPI	R20,6
+    004DC E0E0      LDI	R30,0
+    004DD 075E      CPC	R21,R30
+    004DE F149      BEQ	0x0508
+    004DF 3047      CPI	R20,7
+    004E0 E0E0      LDI	R30,0
+    004E1 075E      CPC	R21,R30
+    004E2 F149      BEQ	0x050C
+    004E3 3048      CPI	R20,0x8
+    004E4 E0E0      LDI	R30,0
+    004E5 075E      CPC	R21,R30
+    004E6 F149      BEQ	0x0510
+    004E7 3049      CPI	R20,0x9
+    004E8 E0E0      LDI	R30,0
+    004E9 075E      CPC	R21,R30
+    004EA F149      BEQ	0x0514
+    004EB 304A      CPI	R20,0xA
+    004EC E0E0      LDI	R30,0
+    004ED 075E      CPC	R21,R30
+    004EE F149      BEQ	0x0518
+    004EF 304B      CPI	R20,0xB
+    004F0 E0E0      LDI	R30,0
+    004F1 075E      CPC	R21,R30
+    004F2 F149      BEQ	0x051C
+    004F3 C18E      RJMP	0x0682
+(0245) 		{case 1 : {action_base(20);break;}
+    004F4 E104      LDI	R16,0x14
+    004F5 E010      LDI	R17,0
+    004F6 DC8A      RCALL	_action_base
+    004F7 C18A      RJMP	0x0682
+(0246) 		 case 2 : {action_base(19);break;}
+    004F8 E103      LDI	R16,0x13
+    004F9 E010      LDI	R17,0
+    004FA DC86      RCALL	_action_base
+    004FB C186      RJMP	0x0682
+(0247) 		 case 3 : {action_base(18);break;}
+    004FC E102      LDI	R16,0x12
+    004FD E010      LDI	R17,0
+    004FE DC82      RCALL	_action_base
+    004FF C182      RJMP	0x0682
+(0248) 		 case 4 : {action_base(17);break;}
+    00500 E101      LDI	R16,0x11
+    00501 E010      LDI	R17,0
+    00502 DC7E      RCALL	_action_base
+    00503 C17E      RJMP	0x0682
+(0249) 		 case 5 : {action_base(16);break;}
+    00504 E100      LDI	R16,0x10
+    00505 E010      LDI	R17,0
+    00506 DC7A      RCALL	_action_base
+    00507 C17A      RJMP	0x0682
+(0250) 		 case 6 : {action_base(15);break;}
+    00508 E00F      LDI	R16,0xF
+    00509 E010      LDI	R17,0
+    0050A DC76      RCALL	_action_base
+    0050B C176      RJMP	0x0682
+(0251) 		 case 7 : {action_base(14);break;}
+    0050C E00E      LDI	R16,0xE
+    0050D E010      LDI	R17,0
+    0050E DC72      RCALL	_action_base
+    0050F C172      RJMP	0x0682
+(0252) 		 case 8 : {action_base(13);break;}
+    00510 E00D      LDI	R16,0xD
+    00511 E010      LDI	R17,0
+    00512 DC6E      RCALL	_action_base
+    00513 C16E      RJMP	0x0682
+(0253) 		 case 9 : {action_base(12);break;}
+    00514 E00C      LDI	R16,0xC
+    00515 E010      LDI	R17,0
+    00516 DC6A      RCALL	_action_base
+    00517 C16A      RJMP	0x0682
+(0254) 		 case 10 : {action_base(11);break;}
+    00518 E00B      LDI	R16,0xB
+    00519 E010      LDI	R17,0
+    0051A DC66      RCALL	_action_base
+    0051B C166      RJMP	0x0682
+(0255) 		 case 11 : {action_base(1);break;}
+    0051C E001      LDI	R16,1
+    0051D E010      LDI	R17,0
+    0051E DC62      RCALL	_action_base
+(0256) 		};break;}
+    0051F C162      RJMP	0x0682
+(0257) 		case 4:
+(0258) 	{switch(action_series_step)
+    00520 9140 0100 LDS	R20,action_series_step
+    00522 9150 0101 LDS	R21,action_series_step+1
+    00524 3041      CPI	R20,1
+    00525 E0E0      LDI	R30,0
+    00526 075E      CPC	R21,R30
+    00527 F129      BEQ	0x054D
+    00528 3042      CPI	R20,2
+    00529 E0E0      LDI	R30,0
+    0052A 075E      CPC	R21,R30
+    0052B F129      BEQ	0x0551
+    0052C 3043      CPI	R20,3
+    0052D E0E0      LDI	R30,0
+    0052E 075E      CPC	R21,R30
+    0052F F129      BEQ	0x0555
+    00530 3044      CPI	R20,4
+    00531 E0E0      LDI	R30,0
+    00532 075E      CPC	R21,R30
+    00533 F129      BEQ	0x0559
+    00534 3045      CPI	R20,5
+    00535 E0E0      LDI	R30,0
+    00536 075E      CPC	R21,R30
+    00537 F129      BEQ	0x055D
+    00538 3046      CPI	R20,6
+    00539 E0E0      LDI	R30,0
+    0053A 075E      CPC	R21,R30
+    0053B F129      BEQ	0x0561
+    0053C 3047      CPI	R20,7
+    0053D E0E0      LDI	R30,0
+    0053E 075E      CPC	R21,R30
+    0053F F129      BEQ	0x0565
+    00540 3048      CPI	R20,0x8
+    00541 E0E0      LDI	R30,0
+    00542 075E      CPC	R21,R30
+    00543 F129      BEQ	0x0569
+    00544 3049      CPI	R20,0x9
+    00545 E0E0      LDI	R30,0
+    00546 075E      CPC	R21,R30
+    00547 F129      BEQ	0x056D
+    00548 304A      CPI	R20,0xA
+    00549 E0E0      LDI	R30,0
+    0054A 075E      CPC	R21,R30
+    0054B F129      BEQ	0x0571
+    0054C C135      RJMP	0x0682
+(0259) 		{case 1 : {action_base(20);break;}
+    0054D E104      LDI	R16,0x14
+    0054E E010      LDI	R17,0
+    0054F DC31      RCALL	_action_base
+    00550 C131      RJMP	0x0682
+(0260) 		 case 2 : {action_base(19);break;}
+    00551 E103      LDI	R16,0x13
+    00552 E010      LDI	R17,0
+    00553 DC2D      RCALL	_action_base
+    00554 C12D      RJMP	0x0682
+(0261) 		 case 3 : {action_base(18);break;}
+    00555 E102      LDI	R16,0x12
+    00556 E010      LDI	R17,0
+    00557 DC29      RCALL	_action_base
+    00558 C129      RJMP	0x0682
+(0262) 		 case 4 : {action_base(17);break;}
+    00559 E101      LDI	R16,0x11
+    0055A E010      LDI	R17,0
+    0055B DC25      RCALL	_action_base
+    0055C C125      RJMP	0x0682
+(0263) 		 case 5 : {action_base(16);break;}
+    0055D E100      LDI	R16,0x10
+    0055E E010      LDI	R17,0
+    0055F DC21      RCALL	_action_base
+    00560 C121      RJMP	0x0682
+(0264) 		 case 6 : {action_base(15);break;}
+    00561 E00F      LDI	R16,0xF
+    00562 E010      LDI	R17,0
+    00563 DC1D      RCALL	_action_base
+    00564 C11D      RJMP	0x0682
+(0265) 		 case 7 : {action_base(14);break;}
+    00565 E00E      LDI	R16,0xE
+    00566 E010      LDI	R17,0
+    00567 DC19      RCALL	_action_base
+    00568 C119      RJMP	0x0682
+(0266) 		 case 8 : {action_base(13);break;}
+    00569 E00D      LDI	R16,0xD
+    0056A E010      LDI	R17,0
+    0056B DC15      RCALL	_action_base
+    0056C C115      RJMP	0x0682
+(0267) 		 case 9 : {action_base(12);break;}
+    0056D E00C      LDI	R16,0xC
+    0056E E010      LDI	R17,0
+    0056F DC11      RCALL	_action_base
+    00570 C111      RJMP	0x0682
+(0268) 		 case 10 : {action_base(11);break;}
+    00571 E00B      LDI	R16,0xB
+    00572 E010      LDI	R17,0
+    00573 DC0D      RCALL	_action_base
+(0269) 		};break;}
+    00574 C10D      RJMP	0x0682
+(0270) 		case 5:
+(0271) 	{switch(action_series_step)
+    00575 9140 0100 LDS	R20,action_series_step
+    00577 9150 0101 LDS	R21,action_series_step+1
+    00579 3041      CPI	R20,1
+    0057A E0E0      LDI	R30,0
+    0057B 075E      CPC	R21,R30
+    0057C F089      BEQ	0x058E
+    0057D 3042      CPI	R20,2
+    0057E E0E0      LDI	R30,0
+    0057F 075E      CPC	R21,R30
+    00580 F089      BEQ	0x0592
+    00581 3043      CPI	R20,3
+    00582 E0E0      LDI	R30,0
+    00583 075E      CPC	R21,R30
+    00584 F089      BEQ	0x0596
+    00585 3044      CPI	R20,4
+    00586 E0E0      LDI	R30,0
+    00587 075E      CPC	R21,R30
+    00588 F089      BEQ	0x059A
+    00589 3045      CPI	R20,5
+    0058A E0E0      LDI	R30,0
+    0058B 075E      CPC	R21,R30
+    0058C F089      BEQ	0x059E
+    0058D C0F4      RJMP	0x0682
+(0272) 		{case 1 : {action_base(0);break;}
+    0058E 2700      CLR	R16
+    0058F 2711      CLR	R17
+    00590 DBF0      RCALL	_action_base
+    00591 C0F0      RJMP	0x0682
+(0273) 		 case 2 : {action_base(6);break;}
+    00592 E006      LDI	R16,6
+    00593 E010      LDI	R17,0
+    00594 DBEC      RCALL	_action_base
+    00595 C0EC      RJMP	0x0682
+(0274) 		 case 3 : {action_base(5);break;}
+    00596 E005      LDI	R16,5
+    00597 E010      LDI	R17,0
+    00598 DBE8      RCALL	_action_base
+    00599 C0E8      RJMP	0x0682
+(0275) 		 case 4 : {action_base(4);break;}
+    0059A E004      LDI	R16,4
+    0059B E010      LDI	R17,0
+    0059C DBE4      RCALL	_action_base
+    0059D C0E4      RJMP	0x0682
+(0276) 		 case 5 : {action_base(0);break;}
+    0059E 2700      CLR	R16
+    0059F 2711      CLR	R17
+    005A0 DBE0      RCALL	_action_base
+(0277) 		};break;}
+    005A1 C0E0      RJMP	0x0682
+(0278) 		case 6:
+(0279) 	{switch(action_series_step)
+    005A2 9140 0100 LDS	R20,action_series_step
+    005A4 9150 0101 LDS	R21,action_series_step+1
+    005A6 3041      CPI	R20,1
+    005A7 E0E0      LDI	R30,0
+    005A8 075E      CPC	R21,R30
+    005A9 F089      BEQ	0x05BB
+    005AA 3042      CPI	R20,2
+    005AB E0E0      LDI	R30,0
+    005AC 075E      CPC	R21,R30
+    005AD F089      BEQ	0x05BF
+    005AE 3043      CPI	R20,3
+    005AF E0E0      LDI	R30,0
+    005B0 075E      CPC	R21,R30
+    005B1 F089      BEQ	0x05C3
+    005B2 3044      CPI	R20,4
+    005B3 E0E0      LDI	R30,0
+    005B4 075E      CPC	R21,R30
+    005B5 F089      BEQ	0x05C7
+    005B6 3045      CPI	R20,5
+    005B7 E0E0      LDI	R30,0
+    005B8 075E      CPC	R21,R30
+    005B9 F089      BEQ	0x05CB
+    005BA C0C7      RJMP	0x0682
+(0280) 		{case 1 : {action_base(0);break;}
+    005BB 2700      CLR	R16
+    005BC 2711      CLR	R17
+    005BD DBC3      RCALL	_action_base
+    005BE C0C3      RJMP	0x0682
+(0281) 		 case 2 : {action_base(10);break;}
+    005BF E00A      LDI	R16,0xA
+    005C0 E010      LDI	R17,0
+    005C1 DBBF      RCALL	_action_base
+    005C2 C0BF      RJMP	0x0682
+(0282) 		 case 3 : {action_base(9);break;}
+    005C3 E009      LDI	R16,0x9
+    005C4 E010      LDI	R17,0
+    005C5 DBBB      RCALL	_action_base
+    005C6 C0BB      RJMP	0x0682
+(0283) 		 case 4 : {action_base(8);break;}
+    005C7 E008      LDI	R16,0x8
+    005C8 E010      LDI	R17,0
+    005C9 DBB7      RCALL	_action_base
+    005CA C0B7      RJMP	0x0682
+(0284) 		 case 5 : {action_base(0);break;}
+    005CB 2700      CLR	R16
+    005CC 2711      CLR	R17
+    005CD DBB3      RCALL	_action_base
+(0285) 		};break;}
+    005CE C0B3      RJMP	0x0682
+(0286) 		case 7:
+(0287) 	{switch(action_series_step)
+    005CF 9140 0100 LDS	R20,action_series_step
+    005D1 9150 0101 LDS	R21,action_series_step+1
+    005D3 3041      CPI	R20,1
+    005D4 E0E0      LDI	R30,0
+    005D5 075E      CPC	R21,R30
+    005D6 F089      BEQ	0x05E8
+    005D7 3042      CPI	R20,2
+    005D8 E0E0      LDI	R30,0
+    005D9 075E      CPC	R21,R30
+    005DA F089      BEQ	0x05EC
+    005DB 3043      CPI	R20,3
+    005DC E0E0      LDI	R30,0
+    005DD 075E      CPC	R21,R30
+    005DE F089      BEQ	0x05F0
+    005DF 3044      CPI	R20,4
+    005E0 E0E0      LDI	R30,0
+    005E1 075E      CPC	R21,R30
+    005E2 F089      BEQ	0x05F4
+    005E3 3045      CPI	R20,5
+    005E4 E0E0      LDI	R30,0
+    005E5 075E      CPC	R21,R30
+    005E6 F089      BEQ	0x05F8
+    005E7 C09A      RJMP	0x0682
+(0288) 		{case 1 : {action_base(0);break;}
+    005E8 2700      CLR	R16
+    005E9 2711      CLR	R17
+    005EA DB96      RCALL	_action_base
+    005EB C096      RJMP	0x0682
+(0289) 		 case 2 : {action_base(16);break;}
+    005EC E100      LDI	R16,0x10
+    005ED E010      LDI	R17,0
+    005EE DB92      RCALL	_action_base
+    005EF C092      RJMP	0x0682
+(0290) 		 case 3 : {action_base(15);break;}
+    005F0 E00F      LDI	R16,0xF
+    005F1 E010      LDI	R17,0
+    005F2 DB8E      RCALL	_action_base
+    005F3 C08E      RJMP	0x0682
+(0291) 		 case 4 : {action_base(14);break;}
+    005F4 E00E      LDI	R16,0xE
+    005F5 E010      LDI	R17,0
+    005F6 DB8A      RCALL	_action_base
+    005F7 C08A      RJMP	0x0682
+(0292) 		 case 5 : {action_base(0);break;}
+    005F8 2700      CLR	R16
+    005F9 2711      CLR	R17
+    005FA DB86      RCALL	_action_base
+(0293) 		};break;}
+    005FB C086      RJMP	0x0682
+(0294) 		case 8:
+(0295) 	{switch(action_series_step)
+    005FC 9140 0100 LDS	R20,action_series_step
+    005FE 9150 0101 LDS	R21,action_series_step+1
+    00600 3041      CPI	R20,1
+    00601 E0E0      LDI	R30,0
+    00602 075E      CPC	R21,R30
+    00603 F089      BEQ	0x0615
+    00604 3042      CPI	R20,2
+    00605 E0E0      LDI	R30,0
+    00606 075E      CPC	R21,R30
+    00607 F089      BEQ	0x0619
+    00608 3043      CPI	R20,3
+    00609 E0E0      LDI	R30,0
+    0060A 075E      CPC	R21,R30
+    0060B F089      BEQ	0x061D
+    0060C 3044      CPI	R20,4
+    0060D E0E0      LDI	R30,0
+    0060E 075E      CPC	R21,R30
+    0060F F089      BEQ	0x0621
+    00610 3045      CPI	R20,5
+    00611 E0E0      LDI	R30,0
+    00612 075E      CPC	R21,R30
+    00613 F089      BEQ	0x0625
+    00614 C06D      RJMP	0x0682
+(0296) 		{case 1 : {action_base(0);break;}
+    00615 2700      CLR	R16
+    00616 2711      CLR	R17
+    00617 DB69      RCALL	_action_base
+    00618 C069      RJMP	0x0682
+(0297) 		 case 2 : {action_base(20);break;}
+    00619 E104      LDI	R16,0x14
+    0061A E010      LDI	R17,0
+    0061B DB65      RCALL	_action_base
+    0061C C065      RJMP	0x0682
+(0298) 		 case 3 : {action_base(19);break;}
+    0061D E103      LDI	R16,0x13
+    0061E E010      LDI	R17,0
+    0061F DB61      RCALL	_action_base
+    00620 C061      RJMP	0x0682
+(0299) 		 case 4 : {action_base(18);break;}
+    00621 E102      LDI	R16,0x12
+    00622 E010      LDI	R17,0
+    00623 DB5D      RCALL	_action_base
+    00624 C05D      RJMP	0x0682
+(0300) 		 case 5 : {action_base(0);break;}
+    00625 2700      CLR	R16
+    00626 2711      CLR	R17
+    00627 DB59      RCALL	_action_base
+(0301) 		};break;}
+    00628 C059      RJMP	0x0682
+(0302) 		case 9:
+(0303) 	{switch(action_series_step)
+    00629 9140 0100 LDS	R20,action_series_step
+    0062B 9150 0101 LDS	R21,action_series_step+1
+    0062D 3041      CPI	R20,1
+    0062E E0E0      LDI	R30,0
+    0062F 075E      CPC	R21,R30
+    00630 F0A9      BEQ	0x0646
+    00631 3042      CPI	R20,2
+    00632 E0E0      LDI	R30,0
+    00633 075E      CPC	R21,R30
+    00634 F0A9      BEQ	0x064A
+    00635 3043      CPI	R20,3
+    00636 E0E0      LDI	R30,0
+    00637 075E      CPC	R21,R30
+    00638 F0A9      BEQ	0x064E
+    00639 3044      CPI	R20,4
+    0063A E0E0      LDI	R30,0
+    0063B 075E      CPC	R21,R30
+    0063C F0A9      BEQ	0x0652
+    0063D 3045      CPI	R20,5
+    0063E E0E0      LDI	R30,0
+    0063F 075E      CPC	R21,R30
+    00640 F0A9      BEQ	0x0656
+    00641 3046      CPI	R20,6
+    00642 E0E0      LDI	R30,0
+    00643 075E      CPC	R21,R30
+    00644 F0A9      BEQ	0x065A
+    00645 C03C      RJMP	0x0682
+(0304) 		{case 1 : {action_base(9);break;}
+    00646 E009      LDI	R16,0x9
+    00647 E010      LDI	R17,0
+    00648 DB38      RCALL	_action_base
+    00649 C038      RJMP	0x0682
+(0305) 		 case 2 : {action_base(8);break;}
+    0064A E008      LDI	R16,0x8
+    0064B E010      LDI	R17,0
+    0064C DB34      RCALL	_action_base
+    0064D C034      RJMP	0x0682
+(0306) 		 case 3 : {action_base(5);break;}
+    0064E E005      LDI	R16,5
+    0064F E010      LDI	R17,0
+    00650 DB30      RCALL	_action_base
+    00651 C030      RJMP	0x0682
+(0307) 		 case 4 : {action_base(4);break;}
+    00652 E004      LDI	R16,4
+    00653 E010      LDI	R17,0
+    00654 DB2C      RCALL	_action_base
+    00655 C02C      RJMP	0x0682
+(0308) 		 case 5 : {action_base(3);break;}
+    00656 E003      LDI	R16,3
+    00657 E010      LDI	R17,0
+    00658 DB28      RCALL	_action_base
+    00659 C028      RJMP	0x0682
+(0309) 		 case 6 : {action_base(1);break;}
+    0065A E001      LDI	R16,1
+    0065B E010      LDI	R17,0
+    0065C DB24      RCALL	_action_base
+(0310) 		};break;} 
+    0065D C024      RJMP	0x0682
+(0311) 		 case 10:
+(0312) 	{switch(action_series_step)
+    0065E 9140 0100 LDS	R20,action_series_step
+    00660 9150 0101 LDS	R21,action_series_step+1
+    00662 3041      CPI	R20,1
+    00663 E0E0      LDI	R30,0
+    00664 075E      CPC	R21,R30
+    00665 F069      BEQ	0x0673
+    00666 3042      CPI	R20,2
+    00667 E0E0      LDI	R30,0
+    00668 075E      CPC	R21,R30
+    00669 F069      BEQ	0x0677
+    0066A 3043      CPI	R20,3
+    0066B E0E0      LDI	R30,0
+    0066C 075E      CPC	R21,R30
+    0066D F069      BEQ	0x067B
+    0066E 3044      CPI	R20,4
+    0066F E0E0      LDI	R30,0
+    00670 075E      CPC	R21,R30
+    00671 F069      BEQ	0x067F
+    00672 C00F      RJMP	0x0682
+(0313) 		{case 1 : {action_base(9);break;}
+    00673 E009      LDI	R16,0x9
+    00674 E010      LDI	R17,0
+    00675 DB0B      RCALL	_action_base
+    00676 C00B      RJMP	0x0682
+(0314) 		 case 2 : {action_base(8);break;}
+    00677 E008      LDI	R16,0x8
+    00678 E010      LDI	R17,0
+    00679 DB07      RCALL	_action_base
+    0067A C007      RJMP	0x0682
+(0315) 		 case 3 : {action_base(5);break;}
+    0067B E005      LDI	R16,5
+    0067C E010      LDI	R17,0
+    0067D DB03      RCALL	_action_base
+    0067E C003      RJMP	0x0682
+(0316) 		 case 4 : {action_base(4);break;}
+    0067F E004      LDI	R16,4
+    00680 E010      LDI	R17,0
+    00681 DAFF      RCALL	_action_base
+(0317) 		};break;} 
+(0318) 
+(0319) 			 }
+(0320) if(--action_series_step==0)action_series_flag=0,action_series_number=0;//Èç¹û¶¯×÷Íê³É£¬Ôò¶¯×÷ÏµÁÐ±êÖ¾Î»ÖÃ0
+    00682 9140 0100 LDS	R20,action_series_step
+    00684 9150 0101 LDS	R21,action_series_step+1
+    00686 5041      SUBI	R20,1
+    00687 4050      SBCI	R21,0
+    00688 9350 0101 STS	action_series_step+1,R21
+    0068A 9340 0100 STS	action_series_step,R20
+    0068C 3040      CPI	R20,0
+    0068D 0745      CPC	R20,R21
+    0068E F451      BNE	0x0699
+    0068F 2422      CLR	R2
+    00690 2433      CLR	R3
+    00691 9230 0105 STS	action_series_flag+1,R3
+    00693 9220 0104 STS	action_series_flag,R2
+    00695 9230 0103 STS	action_series_number+1,R3
+    00697 9220 0102 STS	action_series_number,R2
+    00699 9159      LD	R21,Y+
+    0069A 9149      LD	R20,Y+
+    0069B 9508      RET
+(0321) 
+(0322) }
+(0323) 
+(0324) /********¶¯×÷ÏµÁÐÅäÖÃ************/
+(0325) void action_series_set(int number)
+(0326) {
+(0327) switch(number)
+_action_series_set:
+  number               --> R16
+    0069C 3001      CPI	R16,1
+    0069D E0E0      LDI	R30,0
+    0069E 071E      CPC	R17,R30
+    0069F F409      BNE	0x06A1
+    006A0 C02E      RJMP	0x06CF
+    006A1 3002      CPI	R16,2
+    006A2 E0E0      LDI	R30,0
+    006A3 071E      CPC	R17,R30
+    006A4 F409      BNE	0x06A6
+    006A5 C035      RJMP	0x06DB
+    006A6 3003      CPI	R16,3
+    006A7 E0E0      LDI	R30,0
+    006A8 071E      CPC	R17,R30
+    006A9 F409      BNE	0x06AB
+    006AA C03C      RJMP	0x06E7
+    006AB 3004      CPI	R16,4
+    006AC E0E0      LDI	R30,0
+    006AD 071E      CPC	R17,R30
+    006AE F409      BNE	0x06B0
+    006AF C043      RJMP	0x06F3
+    006B0 3005      CPI	R16,5
+    006B1 E0E0      LDI	R30,0
+    006B2 071E      CPC	R17,R30
+    006B3 F409      BNE	0x06B5
+    006B4 C04A      RJMP	0x06FF
+    006B5 3006      CPI	R16,6
+    006B6 E0E0      LDI	R30,0
+    006B7 071E      CPC	R17,R30
+    006B8 F409      BNE	0x06BA
+    006B9 C051      RJMP	0x070B
+    006BA 3007      CPI	R16,7
+    006BB E0E0      LDI	R30,0
+    006BC 071E      CPC	R17,R30
+    006BD F409      BNE	0x06BF
+    006BE C057      RJMP	0x0716
+    006BF 3008      CPI	R16,0x8
+    006C0 E0E0      LDI	R30,0
+    006C1 071E      CPC	R17,R30
+    006C2 F409      BNE	0x06C4
+    006C3 C05E      RJMP	0x0722
+    006C4 3009      CPI	R16,0x9
+    006C5 E0E0      LDI	R30,0
+    006C6 071E      CPC	R17,R30
+    006C7 F409      BNE	0x06C9
+    006C8 C065      RJMP	0x072E
+    006C9 300A      CPI	R16,0xA
+    006CA E0E0      LDI	R30,0
+    006CB 071E      CPC	R17,R30
+    006CC F409      BNE	0x06CE
+    006CD C06C      RJMP	0x073A
+    006CE C076      RJMP	0x0745
+(0328) {case 1 : {action_series_number=1;action_series_step=11;break;}		 //Æô¶¯²¢×ßÒ»²½
+    006CF E081      LDI	R24,1
+    006D0 E090      LDI	R25,0
+    006D1 9390 0103 STS	action_series_number+1,R25
+    006D3 9380 0102 STS	action_series_number,R24
+    006D5 E08B      LDI	R24,0xB
+    006D6 9390 0101 STS	action_series_step+1,R25
+    006D8 9380 0100 STS	action_series_step,R24
+    006DA C06A      RJMP	0x0745
+(0329) case 2 : {action_series_number=2;action_series_step=10;break;}		 //¼ÌÐø×ß
+    006DB E082      LDI	R24,2
+    006DC E090      LDI	R25,0
+    006DD 9390 0103 STS	action_series_number+1,R25
+    006DF 9380 0102 STS	action_series_number,R24
+    006E1 E08A      LDI	R24,0xA
+    006E2 9390 0101 STS	action_series_step+1,R25
+    006E4 9380 0100 STS	action_series_step,R24
+    006E6 C05E      RJMP	0x0745
+(0330) case 3 : {action_series_number=3;action_series_step=11;break;}		 //Æô¶¯²¢ºóÍËÒ»²½
+    006E7 E083      LDI	R24,3
+    006E8 E090      LDI	R25,0
+    006E9 9390 0103 STS	action_series_number+1,R25
+    006EB 9380 0102 STS	action_series_number,R24
+    006ED E08B      LDI	R24,0xB
+    006EE 9390 0101 STS	action_series_step+1,R25
+    006F0 9380 0100 STS	action_series_step,R24
+    006F2 C052      RJMP	0x0745
+(0331) case 4 : {action_series_number=4;action_series_step=10;break;}		 //¼ÌÐøºóÍË
+    006F3 E084      LDI	R24,4
+    006F4 E090      LDI	R25,0
+    006F5 9390 0103 STS	action_series_number+1,R25
+    006F7 9380 0102 STS	action_series_number,R24
+    006F9 E08A      LDI	R24,0xA
+    006FA 9390 0101 STS	action_series_step+1,R25
+    006FC 9380 0100 STS	action_series_step,R24
+    006FE C046      RJMP	0x0745
+(0332) case 5 : {action_series_number=5;action_series_step=6;break;}		 //¼ÌÐøºóÍË
+    006FF E085      LDI	R24,5
+    00700 E090      LDI	R25,0
+    00701 9390 0103 STS	action_series_number+1,R25
+    00703 9380 0102 STS	action_series_number,R24
+    00705 E086      LDI	R24,6
+    00706 9390 0101 STS	action_series_step+1,R25
+    00708 9380 0100 STS	action_series_step,R24
+    0070A C03A      RJMP	0x0745
+(0333) case 6 : {action_series_number=6;action_series_step=6;break;}		 //¼ÌÐøºóÍË
+    0070B E086      LDI	R24,6
+    0070C E090      LDI	R25,0
+    0070D 9390 0103 STS	action_series_number+1,R25
+    0070F 9380 0102 STS	action_series_number,R24
+    00711 9390 0101 STS	action_series_step+1,R25
+    00713 9380 0100 STS	action_series_step,R24
+    00715 C02F      RJMP	0x0745
+(0334) case 7 : {action_series_number=7;action_series_step=6;break;}		 //¼ÌÐøºóÍË
+    00716 E087      LDI	R24,7
+    00717 E090      LDI	R25,0
+    00718 9390 0103 STS	action_series_number+1,R25
+    0071A 9380 0102 STS	action_series_number,R24
+    0071C E086      LDI	R24,6
+    0071D 9390 0101 STS	action_series_step+1,R25
+    0071F 9380 0100 STS	action_series_step,R24
+    00721 C023      RJMP	0x0745
+(0335) case 8 : {action_series_number=8;action_series_step=6;break;}		 //¼ÌÐøºóÍË
+    00722 E088      LDI	R24,0x8
+    00723 E090      LDI	R25,0
+    00724 9390 0103 STS	action_series_number+1,R25
+    00726 9380 0102 STS	action_series_number,R24
+    00728 E086      LDI	R24,6
+    00729 9390 0101 STS	action_series_step+1,R25
+    0072B 9380 0100 STS	action_series_step,R24
+    0072D C017      RJMP	0x0745
+(0336) case 9 : {action_series_number=9;action_series_step=6;break;}		 //¼ÌÐøºóÍË
+    0072E E089      LDI	R24,0x9
+    0072F E090      LDI	R25,0
+    00730 9390 0103 STS	action_series_number+1,R25
+    00732 9380 0102 STS	action_series_number,R24
+    00734 E086      LDI	R24,6
+    00735 9390 0101 STS	action_series_step+1,R25
+    00737 9380 0100 STS	action_series_step,R24
+    00739 C00B      RJMP	0x0745
+(0337) case 10 : {action_series_number=10;action_series_step=4;break;}		 //¼ÌÐøºóÍË
+    0073A E08A      LDI	R24,0xA
+    0073B E090      LDI	R25,0
+    0073C 9390 0103 STS	action_series_number+1,R25
+    0073E 9380 0102 STS	action_series_number,R24
+    00740 E084      LDI	R24,4
+    00741 9390 0101 STS	action_series_step+1,R25
+    00743 9380 0100 STS	action_series_step,R24
+(0338) }
+(0339) action_series_flag=1;
+    00745 E081      LDI	R24,1
+    00746 E090      LDI	R25,0
+    00747 9390 0105 STS	action_series_flag+1,R25
+    00749 9380 0104 STS	action_series_flag,R24
+    0074B 9508      RET
+(0340) }
+(0341) 
+(0342) void pwm_init(void)
+(0343) {
+(0344) DDRB|=BIT(PB7);
+_pwm_init:
+    0074C 9ABF      SBI	0x17,7
+(0345)  DDRB|=BIT(PB6);
+    0074D 9ABE      SBI	0x17,6
+(0346)  DDRB|=BIT(PB5);
+    0074E 9ABD      SBI	0x17,5
+(0347)  DDRE|=BIT(PE3);
+    0074F 9A13      SBI	0x02,3
+(0348)  DDRE|=BIT(PE4);
+    00750 9A14      SBI	0x02,4
+(0349)  DDRE|=BIT(PE5);
+    00751 9A15      SBI	0x02,5
+(0350) //½«OCR1A¹Ü½ÅÅäÖÃÎªÊä³ö
+(0351) 
+(0352) TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+    00752 B58E      IN	R24,0x2E
+    00753 618A      ORI	R24,0x1A
+    00754 BD8E      OUT	0x2E,R24
+(0353) 
+(0354) //Ê±ÖÓ8·ÖÆµ
+(0355) TCCR1A|=(1<<COM1C1)|(1<<COM1A1)|(1<<COM1B1)|(1<<WGM11);   //Ñ¡Í¨ABC  
+    00755 B58F      IN	R24,0x2F
+    00756 6A8A      ORI	R24,0xAA
+    00757 BD8F      OUT	0x2F,R24
+(0356) //TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0357) 
+(0358) //¿ìËÙPWMÄ£Ê½top:ICR1
+(0359) 
+(0360) ICR1=20000;
+    00758 E280      LDI	R24,0x20
+    00759 E49E      LDI	R25,0x4E
+    0075A BD97      OUT	0x27,R25
+    0075B BD86      OUT	0x26,R24
+(0361) 
+(0362) TCCR3B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11)|(1<<CS01);
+    0075C 9180 008A LDS	R24,0x8A
+    0075E 618A      ORI	R24,0x1A
+    0075F 9380 008A STS	0x8A,R24
+(0363) //(1<<WGM32)|(1<<WGM33)|(1<<CS31);
+(0364) TCCR3A|=(1<<COM3A1)|(1<<COM3B1)|(1<<COM3C1)|(1<<WGM11);  //Ñ¡Í¨ABC
+    00761 9180 008B LDS	R24,0x8B
+    00763 6A8A      ORI	R24,0xAA
+    00764 9380 008B STS	0x8B,R24
+(0365) 	ICR3=20000;
+    00766 E280      LDI	R24,0x20
+    00767 9390 0081 STS	0x81,R25
+    00769 9380 0080 STS	0x80,R24
+(0366) 
+(0367) 
+(0368) //ÖÜÆÚ20ms
+(0369) 
+(0370) OCR1C=1680;   //2000---3000--4000
+    0076B E980      LDI	R24,0x90
+    0076C E096      LDI	R25,6
+    0076D 9390 0079 STS	0x79,R25
+    0076F 9380 0078 STS	0x78,R24
+(0371) OCR1B=1880;
+    00771 E588      LDI	R24,0x58
+    00772 E097      LDI	R25,7
+    00773 BD99      OUT	0x29,R25
+    00774 BD88      OUT	0x28,R24
+(0372) OCR1A=1640;
+    00775 E688      LDI	R24,0x68
+    00776 E096      LDI	R25,6
+    00777 BD9B      OUT	0x2B,R25
+    00778 BD8A      OUT	0x2A,R24
+(0373) OCR3C=1620;
+    00779 E584      LDI	R24,0x54
+    0077A 9390 0083 STS	0x83,R25
+    0077C 9380 0082 STS	0x82,R24
+(0374) OCR3B=1600;
+    0077E E480      LDI	R24,0x40
+    0077F 9390 0085 STS	0x85,R25
+    00781 9380 0084 STS	0x84,R24
+(0375) OCR3A=1800;
+    00783 E088      LDI	R24,0x8
+    00784 E097      LDI	R25,7
+    00785 9390 0087 STS	0x87,R25
+    00787 9380 0086 STS	0x86,R24
+    00789 9508      RET
+(0376) 
+(0377) //ÕýÂö¿í
+(0378) 
+(0379) 
+(0380) /*TCCR1B|=(1<<WGM12)|(1<<WGM13)|(1<<CS11);
+(0381) TCCR1A|=(1<<COM1C1)|(1<<WGM11);
+(0382) ICR1=40000;   */
+(0383) 
+(0384) }
+(0385) 
+(0386) void main (void)
+(0387) {
+(0388)  int i,j,k;
+(0389) int number=0;
+_main:
+  k                    --> Y,+1
+  j                    --> Y,+1
+  i                    --> Y,+1
+  rev                  --> R10
+  number               --> R20
+    0078A 2744      CLR	R20
+    0078B 2755      CLR	R21
+(0390) char rev=0;
+    0078C 24AA      CLR	R10
+(0391)    pwm_init();
+    0078D DFBE      RCALL	_pwm_init
+(0392) 
+(0393) 
+(0394) // usart0_init;//UART0³õÊ¼»¯
+(0395)   
+(0396) 
+(0397) uart1_init();
+    0078E D8FB      RCALL	_uart1_init
+    0078F C06B      RJMP	0x07FB
+(0398) //ÇåÁã¼ÆÊýÆ÷
+(0399) 
+(0400) while(1){
+(0401) /*
+(0402) for(i=0;i<1000;i++){
+(0403)     for(j=0;j<500;j++){
+(0404)        for(k=0;k<5;k++){   //k<10,Ô¼ÈýÃë  
+(0405)          ; 
+(0406) 		 }
+(0407)     }
+(0408) }
+(0409) */
+(0410)    number=number+1;
+    00790 5F4F      SUBI	R20,0xFF
+    00791 4F5F      SBCI	R21,0xFF
+(0411)    if(number>10){
+    00792 E08A      LDI	R24,0xA
+    00793 E090      LDI	R25,0
+    00794 1784      CP	R24,R20
+    00795 0795      CPC	R25,R21
+    00796 F414      BGE	0x0799
+(0412)    number=0;
+    00797 2744      CLR	R20
+    00798 2755      CLR	R21
+(0413)    }
+(0414)    
+(0415) //usart0_char_send(1);
+(0416)  //usart0_str_send("UART0 works well!"); 
+(0417)     putchar1(temp);
+    00799 9100 0106 LDS	R16,temp
+    0079B 9110 0107 LDS	R17,temp+1
+    0079D D901      RCALL	_putchar1
+(0418) 	
+(0419) 		  temp=getchar1();
+    0079E D907      RCALL	_getchar1
+    0079F 2E20      MOV	R2,R16
+    007A0 2433      CLR	R3
+    007A1 9230 0107 STS	temp+1,R3
+    007A3 9220 0106 STS	temp,R2
+(0420) 	     if(temp>127){
+    007A5 E78F      LDI	R24,0x7F
+    007A6 E090      LDI	R25,0
+    007A7 1582      CP	R24,R2
+    007A8 0593      CPC	R25,R3
+    007A9 F43C      BGE	0x07B1
+(0421) 		 temp=temp-128;
+    007AA 01C1      MOVW	R24,R2
+    007AB 5880      SUBI	R24,0x80
+    007AC 4090      SBCI	R25,0
+    007AD 9390 0107 STS	temp+1,R25
+    007AF 9380 0106 STS	temp,R24
+(0422) 		 }
+(0423)      
+(0424) 		 if((temp<26)&&(temp>-1)){
+    007B1 9020 0106 LDS	R2,temp
+    007B3 9030 0107 LDS	R3,temp+1
+    007B5 01C1      MOVW	R24,R2
+    007B6 318A      CPI	R24,0x1A
+    007B7 E0E0      LDI	R30,0
+    007B8 079E      CPC	R25,R30
+    007B9 F5CC      BGE	0x07F3
+    007BA EF8F      LDI	R24,0xFF
+    007BB EF9F      LDI	R25,0xFF
+    007BC 1582      CP	R24,R2
+    007BD 0593      CPC	R25,R3
+    007BE F5A4      BGE	0x07F3
+(0425) 		// action_base(temp);
+(0426) 		
+(0427)          if(temp==1){              //Í£Ö¹
+    007BF 01C1      MOVW	R24,R2
+    007C0 3081      CPI	R24,1
+    007C1 E0E0      LDI	R30,0
+    007C2 079E      CPC	R25,R30
+    007C3 F419      BNE	0x07C7
+(0428) 		 action_base(0);
+    007C4 2700      CLR	R16
+    007C5 2711      CLR	R17
+    007C6 D9BA      RCALL	_action_base
+(0429) 		 }
+(0430) 		 
+(0431) 		 if(temp==2){             //Ç°½ø
+    007C7 9180 0106 LDS	R24,temp
+    007C9 9190 0107 LDS	R25,temp+1
+    007CB 3082      CPI	R24,2
+    007CC E0E0      LDI	R30,0
+    007CD 079E      CPC	R25,R30
+    007CE F419      BNE	0x07D2
+(0432) 		 action_base(1);
+    007CF E001      LDI	R16,1
+    007D0 E010      LDI	R17,0
+    007D1 D9AF      RCALL	_action_base
+(0433) 		 }
+(0434) 	
+(0435) 	     if(temp==3){             //ºóÍË
+    007D2 9180 0106 LDS	R24,temp
+    007D4 9190 0107 LDS	R25,temp+1
+    007D6 3083      CPI	R24,3
+    007D7 E0E0      LDI	R30,0
+    007D8 079E      CPC	R25,R30
+    007D9 F419      BNE	0x07DD
+(0436) 		 action_base(2);
+    007DA E002      LDI	R16,2
+    007DB E010      LDI	R17,0
+    007DC D9A4      RCALL	_action_base
+(0437) 		 } 
+(0438) 		 
+(0439) 		 if(temp==4){            //×ó
+    007DD 9180 0106 LDS	R24,temp
+    007DF 9190 0107 LDS	R25,temp+1
+    007E1 3084      CPI	R24,4
+    007E2 E0E0      LDI	R30,0
+    007E3 079E      CPC	R25,R30
+    007E4 F419      BNE	0x07E8
+(0440) 		 action_base(8);
+    007E5 E008      LDI	R16,0x8
+    007E6 E010      LDI	R17,0
+    007E7 D999      RCALL	_action_base
+(0441) 		 } 
+(0442) 		 
+(0443) 		 if(temp==5){           //ÓÒ
+    007E8 9180 0106 LDS	R24,temp
+    007EA 9190 0107 LDS	R25,temp+1
+    007EC 3085      CPI	R24,5
+    007ED E0E0      LDI	R30,0
+    007EE 079E      CPC	R25,R30
+    007EF F419      BNE	0x07F3
+(0444) 		 action_base(22);
+    007F0 E106      LDI	R16,0x16
+    007F1 E010      LDI	R17,0
+    007F2 D98E      RCALL	_action_base
+(0445) 		 } 
+(0446) 		 
+(0447)     
+(0448) 	   }
+(0449) // action_series_set(number);
+(0450) // action_series_do();
+(0451) 
+(0452) //usart0_char_send(0);
+(0453)  temp_last=temp;
+FILE: <library>
+    007F3 9020 0106 LDS	R2,temp
+    007F5 9030 0107 LDS	R3,temp+1
+    007F7 9230 0109 STS	temp_last+1,R3
+    007F9 9220 0108 STS	temp_last,R2
+    007FB CF94      RJMP	0x0790
+    007FC 9508      RET
+push_arg4:
+    007FD 933A      ST	-Y,R19
+    007FE 932A      ST	-Y,R18
+push_arg2:
+    007FF 931A      ST	-Y,R17
+    00800 930A      ST	-Y,R16
+    00801 9508      RET
+mod16s:
+    00802 9468      BSET	6
+    00803 92DA      ST	-Y,R13
+    00804 2ED1      MOV	R13,R17
+    00805 C004      RJMP	0x080A
+div16s:
+    00806 94E8      BCLR	6
+    00807 92DA      ST	-Y,R13
+    00808 2ED1      MOV	R13,R17
+    00809 26D3      EOR	R13,R19
+    0080A FF17      SBRS	R17,7
+    0080B C004      RJMP	0x0810
+    0080C 9510      COM	R17
+    0080D 9500      COM	R16
+    0080E 5F0F      SUBI	R16,0xFF
+    0080F 4F1F      SBCI	R17,0xFF
+    00810 FF37      SBRS	R19,7
+    00811 C004      RJMP	0x0816
+    00812 9530      COM	R19
+    00813 9520      COM	R18
+    00814 5F2F      SUBI	R18,0xFF
+    00815 4F3F      SBCI	R19,0xFF
+    00816 940E 0823 CALL	xdiv16u
+    00818 FED7      SBRS	R13,7
+    00819 C004      RJMP	0x081E
+    0081A 9510      COM	R17
+    0081B 9500      COM	R16
+    0081C 5F0F      SUBI	R16,0xFF
+    0081D 4F1F      SBCI	R17,0xFF
+    0081E 90D9      LD	R13,Y+
+    0081F 9508      RET
+mod16u:
+    00820 9468      BSET	6
+    00821 C001      RJMP	xdiv16u
+div16u:
+    00822 94E8      BCLR	6
+xdiv16u:
+    00823 92EA      ST	-Y,R14
+    00824 92FA      ST	-Y,R15
+    00825 938A      ST	-Y,R24
+    00826 24EE      CLR	R14
+    00827 24FF      CLR	R15
+    00828 E180      LDI	R24,0x10
+    00829 0F00      LSL	R16
+    0082A 1F11      ROL	R17
+    0082B 1CEE      ROL	R14
+    0082C 1CFF      ROL	R15
+    0082D 16E2      CP	R14,R18
+    0082E 06F3      CPC	R15,R19
+    0082F F018      BCS	0x0833
+    00830 1AE2      SUB	R14,R18
+    00831 0AF3      SBC	R15,R19
+    00832 9503      INC	R16
+    00833 958A      DEC	R24
+    00834 F7A1      BNE	0x0829
+    00835 F416      BRTC	0x0838
+    00836 2D0E      MOV	R16,R14
+    00837 2D1F      MOV	R17,R15
+    00838 9189      LD	R24,Y+
+    00839 90F9      LD	R15,Y+
+    0083A 90E9      LD	R14,Y+
+    0083B 9508      RET
+pop_xgsetF0FC:
+    0083C 90A9      LD	R10,Y+
+    0083D 90B9      LD	R11,Y+
+    0083E 90C9      LD	R12,Y+
+    0083F 90D9      LD	R13,Y+
+    00840 90E9      LD	R14,Y+
+    00841 90F9      LD	R15,Y+
+    00842 9149      LD	R20,Y+
+    00843 9159      LD	R21,Y+
+    00844 9169      LD	R22,Y+
+    00845 9179      LD	R23,Y+
+    00846 9508      RET
+push_xgsetF0FC:
+    00847 937A      ST	-Y,R23
+    00848 936A      ST	-Y,R22
+push_xgset30FC:
+    00849 935A      ST	-Y,R21
+    0084A 934A      ST	-Y,R20
+push_xgset00FC:
+    0084B 92FA      ST	-Y,R15
+    0084C 92EA      ST	-Y,R14
+push_xgset003C:
+    0084D 92DA      ST	-Y,R13
+    0084E 92CA      ST	-Y,R12
+    0084F 92BA      ST	-Y,R11
+    00850 92AA      ST	-Y,R10
+    00851 9508      RET
+push_xgsetF000:
+    00852 937A      ST	-Y,R23
+    00853 936A      ST	-Y,R22
+    00854 935A      ST	-Y,R21
+    00855 934A      ST	-Y,R20
+    00856 9508      RET
+pop_xgsetF000:
+    00857 9149      LD	R20,Y+
+    00858 9159      LD	R21,Y+
+    00859 9169      LD	R22,Y+
+    0085A 9179      LD	R23,Y+
+    0085B 9508      RET
